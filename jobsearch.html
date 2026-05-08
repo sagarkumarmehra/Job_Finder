@@ -1159,15 +1159,18 @@ async function beginSearch() {
   overlay.classList.remove('show');
 
   let apiProfile = null;
+  let apiError   = null;
   try {
     const data = await apiPromise;
     console.log('=== FIREBASE RESPONSE ===', JSON.stringify(data, null, 2));
     apiJobs    = data.jobs    || (Array.isArray(data) ? data : null);
     apiProfile = data.profile || null;
-    if (!apiProfile) console.warn('No profile returned — showing demo data');
+    if (data.error) apiError = data.error;
   } catch (e) {
-    console.warn('Webhook call failed, falling back to demo data:', e.message);
+    apiError = e.message;
+    console.error('Firebase call failed:', e.message);
   }
+  window._lastApiError = apiError; // expose for debug card
 
   showResults(apiJobs || JOBS, apiProfile);
 }
@@ -1356,10 +1359,9 @@ function showResults(jobs, profile) {
 
     card.style.display = 'block';
   } else {
-    // No live profile — show a notice so user knows they're seeing demo jobs
+    const errMsg = window._lastApiError ? `<br><br><strong>Error:</strong> <code style="background:#FFF3CD;padding:2px 6px;border-radius:4px;">${window._lastApiError}</code>` : '';
     card.innerHTML = '<div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:12px;padding:14px 20px;font-size:13px;color:#7A6000;">' +
-      '⚠️ <strong>Demo results shown</strong> — the Firebase API did not return a profile. ' +
-      'Check that your resume uploaded correctly and the API key is set.</div>';
+      '⚠️ <strong>Demo results shown — Firebase API call failed.</strong>' + errMsg + '</div>';
     card.style.display = 'block';
   }
 }
