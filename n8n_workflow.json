@@ -1,0 +1,128 @@
+{
+  "name": "Job Search — Resume to Results",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-search",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-01",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "notes": "Frontend POSTs multipart/form-data here. Fields: resume (file), locations (JSON string), roles (JSON string), salaryMin, salaryMax."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the binary resume file + text form fields out of the multipart request.\n// N8N stores uploaded files in $binary; text fields land in $json.body (N8N 1.x)\n// or directly in $json (older versions) — we handle both.\n\nconst item = $input.first();\nconst bin  = item.binary || {};\n\n// The file input field on the frontend is named 'resume'\nconst resumeBin = bin.resume || bin.data || bin.file;\nif (!resumeBin) {\n  throw new Error(\n    'No resume binary found. Ensure the frontend sends the file in a field named \"resume\" ' +\n    'and that the Webhook node has \"Binary Data\" enabled in its settings.'\n  );\n}\n\n// Text fields: try body.* first (N8N 1.x), fallback to top-level json\nconst body = item.json?.body ?? item.json ?? {};\n\nconst parseJSON = (val, fallback) => {\n  if (!val) return fallback;\n  try { return JSON.parse(val); } catch (_) { return fallback; }\n};\n\nreturn [{\n  json: {\n    // base64-encoded PDF (N8N already base64-encodes binary fields)\n    resumeBase64: resumeBin.data,\n    mimeType:     resumeBin.mimeType  || 'application/pdf',\n    fileName:     resumeBin.fileName  || 'resume.pdf',\n    // Preferences from the form\n    locations:  parseJSON(body.locations, []),\n    roles:      parseJSON(body.roles, []),\n    salaryMin:  parseInt(body.salaryMin ?? '0',   10),\n    salaryMax:  parseInt(body.salaryMax ?? '200', 10)\n  }\n}];"
+      },
+      "id": "node-code-01",
+      "name": "Encode Resume",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.FIREBASE_EXTRACT_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pdf: $json.resumeBase64, mimeType: $json.mimeType, fileName: $json.fileName }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-http-01",
+      "name": "Extract Resume Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300],
+      "notes": "Calls Firebase extractResume function. Set FIREBASE_EXTRACT_URL in n8n > Settings > Variables."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge the extracted resume text with the original user preferences.\n// We reference the 'Encode Resume' node to retrieve location/role/salary data\n// since the current node only receives the Firebase response ({ text, pages }).\n\nconst extractResult = $input.first().json;\nconst prefs         = $('Encode Resume').first().json;\n\nif (!extractResult.text) {\n  throw new Error(\n    'Resume text extraction returned no text. Firebase response: ' +\n    JSON.stringify(extractResult)\n  );\n}\n\nreturn [{\n  json: {\n    resumeText: extractResult.text,\n    pages:      extractResult.pages,\n    locations:  prefs.locations,\n    roles:      prefs.roles,\n    salaryMin:  prefs.salaryMin,\n    salaryMax:  prefs.salaryMax\n  }\n}];"
+      },
+      "id": "node-code-02",
+      "name": "Merge Inputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.FIREBASE_SEARCH_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-http-02",
+      "name": "Search Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1220, 300],
+      "notes": "Calls Firebase searchJobs function. Handles OpenAI profile summarization + SerpAPI + Naukri scraping internally. Set FIREBASE_SEARCH_URL in n8n > Settings > Variables."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Content-Type",                "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-01",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1500, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Encode Resume",        "type": "main", "index": 0 }]]
+    },
+    "Encode Resume": {
+      "main": [[{ "node": "Extract Resume Text",  "type": "main", "index": 0 }]]
+    },
+    "Extract Resume Text": {
+      "main": [[{ "node": "Merge Inputs",         "type": "main", "index": 0 }]]
+    },
+    "Merge Inputs": {
+      "main": [[{ "node": "Search Jobs",          "type": "main", "index": 0 }]]
+    },
+    "Search Jobs": {
+      "main": [[{ "node": "Respond to Webhook",   "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [{ "name": "job-search" }],
+  "versionId": "1"
+}

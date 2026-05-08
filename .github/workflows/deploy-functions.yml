@@ -1,0 +1,29 @@
+name: Deploy Firebase Functions
+
+# Triggers only when files inside firebase-functions/ change
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'firebase-functions/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install function dependencies
+        run: cd firebase-functions && npm install
+
+      - name: Deploy to Firebase
+        run: npx firebase-tools deploy --only functions --token "$FIREBASE_TOKEN" --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
