@@ -120,25 +120,38 @@ async function summarizeProfile(resumeText, locations, roles, salMin, salMax) {
     };
   }
 
+  const userRoles   = (roles || []).join(', ') || 'not specified';
+  const userLocs    = (locations || []).join(', ') || 'any';
+
   const prompt =
-    `Analyze this resume and return ONLY valid JSON — no markdown.\n\n` +
-    `Resume:\n${resumeText.substring(0, 4000)}\n\n` +
-    `Preferences: Locations: ${(locations||[]).join(', ')||'any'} | ` +
-    `Roles: ${(roles||[]).join(', ')||'any'} | Salary: ₹${salMin}L–₹${salMax}L\n\n` +
-    `JSON schema:\n` +
+    `You are a career analyst. Carefully read this resume and extract a precise job-search profile.\n\n` +
+    `=== RESUME ===\n${resumeText.substring(0, 5000)}\n=== END RESUME ===\n\n` +
+    `=== CANDIDATE PREFERENCES ===\n` +
+    `Desired roles: ${userRoles}\nLocations: ${userLocs}\nSalary: ₹${salMin}L–₹${salMax}L\n\n` +
+    `Extract the following and return ONLY valid JSON (no markdown, no explanation):\n\n` +
     `{\n` +
-    `  "skills": ["top 8 technical skills"],\n` +
-    `  "yearsExperience": <integer total years>,\n` +
-    `  "seniority": "fresher|junior|mid|senior|lead|principal",\n` +
-    `  "domain": "primary domain e.g. frontend, backend, data science",\n` +
-    `  "searchKeywords": ["3-5 exact job titles matching their level, e.g. Senior Product Manager"],\n` +
-    `  "seniorityKeywords": ["seniority prefixes/suffixes appropriate for this person, e.g. Senior, Lead, Staff"],\n` +
-    `  "experienceRange": { "min": <yearsExperience - 1>, "max": <yearsExperience + 3> },\n` +
-    `  "avoidKeywords": ["junior", "entry level", "fresher", "intern", "trainee"] if yearsExperience > 3 else [],\n` +
-    `  "summary": "one sentence professional summary"\n` +
+    `  "currentTitle": "their most recent job title exactly as on the resume",\n` +
+    `  "skills": ["up to 10 specific technical skills, tools, frameworks found in the resume — e.g. React, PostgreSQL, Kubernetes, not generic words like 'communication'"],\n` +
+    `  "yearsExperience": <total years of work experience as integer>,\n` +
+    `  "seniority": "fresher|junior|mid|senior|lead|principal — based on years and titles held",\n` +
+    `  "domain": "one specific domain: e.g. frontend engineering, backend engineering, data science, product management, devops, mobile development, design, marketing, finance",\n` +
+    `  "industries": ["industries the person has worked in, e.g. fintech, ecommerce, saas, healthcare"],\n` +
+    `  "searchKeywords": [\n` +
+    `    "5 job titles to search for — MUST match their seniority and domain.",\n` +
+    `    "Use SPECIFIC titles from the resume, not generic ones.",\n` +
+    `    "If their resume shows React+Node experience, use 'Senior Full Stack Engineer' not 'Software Engineer'.",\n` +
+    `    "If preferences specify a role, include that role with correct seniority prefix.",\n` +
+    `    "Example for 6yr React developer: ['Senior Frontend Engineer', 'Senior React Developer', 'Lead UI Engineer', 'Frontend Tech Lead', 'Senior Software Engineer React']"\n` +
+    `  ],\n` +
+    `  "seniorityKeywords": ["seniority words matching their level: e.g. Senior, Lead, Staff, Principal"],\n` +
+    `  "avoidKeywords": ["words that indicate wrong seniority: e.g. junior, fresher, intern, trainee, entry-level — only if yearsExperience > 3"],\n` +
+    `  "summary": "one sentence: their current role, years of experience, and top 2-3 skills"\n` +
     `}\n\n` +
-    `IMPORTANT: searchKeywords MUST reflect the seniority level. ` +
-    `For someone with 8 years experience, use "Senior Software Engineer" not "Software Engineer".`;
+    `RULES:\n` +
+    `- skills must be real tools/technologies found IN the resume, not assumptions\n` +
+    `- searchKeywords must be realistic Indian job market titles (what companies actually post)\n` +
+    `- yearsExperience: calculate from work history dates if available, otherwise estimate from context\n` +
+    `- if candidate specified desired roles in preferences, those take priority in searchKeywords`;
 
   const r = await axios.post(
     'https://api.openai.com/v1/chat/completions',
@@ -154,9 +167,10 @@ async function summarizeProfile(resumeText, locations, roles, salMin, salMax) {
   );
   const parsed = JSON.parse(r.data.choices[0].message.content);
 
-  // Ensure avoidKeywords always exists
-  parsed.avoidKeywords = parsed.avoidKeywords || [];
+  parsed.avoidKeywords     = parsed.avoidKeywords     || [];
   parsed.seniorityKeywords = parsed.seniorityKeywords || [];
+  parsed.industries        = parsed.industries        || [];
+  parsed.currentTitle      = parsed.currentTitle      || '';
   return parsed;
 }
 
