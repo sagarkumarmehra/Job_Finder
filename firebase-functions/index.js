@@ -35,13 +35,18 @@ exports.processSearch = onRequest(RUN_OPTS, async (req, res) => {
     const salaryMax = parseInt(fields.salaryMax   || '200', 10);
 
     const profile = await summarizeProfile(resumeText, locations, roles, salaryMin, salaryMax);
+    console.log('PROFILE:', JSON.stringify(profile));
 
     const [serpJobs, naukriJobs] = await Promise.all([
       process.env.SERPAPI_KEY ? searchSerpAPI(profile, locations) : [],
       searchNaukri(profile, locations, salaryMin, salaryMax)
     ]);
+    console.log(`JOBS FOUND: serp=${serpJobs.length} naukri=${naukriJobs.length}`);
+    if (serpJobs.length) console.log('SERP SAMPLE:', JSON.stringify(serpJobs.slice(0,2).map(j => ({title:j.title, co:j.co}))));
+    if (naukriJobs.length) console.log('NAUKRI SAMPLE:', JSON.stringify(naukriJobs.slice(0,2).map(j => ({title:j.title, co:j.co}))));
 
     const jobs = scoreAndRank(deduplicate([...serpJobs, ...naukriJobs]), profile);
+    console.log(`AFTER SCORING: ${jobs.length} relevant jobs`);
     res.json({ jobs: jobs.slice(0, 10), profile });
   } catch (err) {
     console.error('processSearch error:', err);
