@@ -1,5 +1,5 @@
 {
-  "name": "Job Finder — Step 2: Search Jobs",
+  "name": "Job Finder — Step 2: Search Jobs (Apify + Firecrawl)",
   "nodes": [
     {
       "parameters": {
@@ -8,119 +8,142 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "node-webhook-search",
+      "id": "node-webhook",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [100, 300],
-      "notes": "Frontend POSTs the profile JSON returned by the Analyze Resume workflow."
+      "position": [100, 400],
+      "notes": "Receives the profile JSON from the frontend (output of Analyze Resume workflow)."
     },
+
     {
       "parameters": {
-        "jsCode": "// Build search queries: top 2 keywords × top 2 locations\nconst profile   = $input.first().json;\nconst keywords  = (profile.searchKeywords || ['Software Engineer']).slice(0, 2);\nconst locations = (profile.locations || ['Bengaluru']).slice(0, 2);\nconst topSkills = (profile.skills || []).slice(0, 2);\n\nconst queries = [];\nfor (const keyword of keywords) {\n  for (const location of locations) {\n    if (queries.length >= 4) break;\n    queries.push({ keyword, location, skillSuffix: topSkills.join(' ') });\n  }\n}\n\nif (!queries.length) queries.push({ keyword: 'Software Engineer', location: 'India', skillSuffix: '' });\n\nreturn queries.map(q => ({ json: { ...q, profile } }));"
+        "jsCode": "const profile = $input.first().json;\n\nconst keywords  = (profile.searchKeywords || ['Software Engineer']).slice(0, 2);\nconst locations = (profile.locations      || ['Bengaluru']).slice(0, 2);\nconst topSkills = (profile.skills         || []).slice(0, 2);\n\n// Primary query: first keyword + first location\nconst primaryKeyword  = keywords[0]  || 'Software Engineer';\nconst primaryLocation = locations[0] || 'India';\nconst skillSuffix     = topSkills.join(' ');\n\n// Naukri-friendly URL slug: 'Senior-Product-Manager-jobs-in-Bengaluru'\nconst toSlug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');\nconst naukriPath = `${toSlug(primaryKeyword)}-jobs-in-${toSlug(primaryLocation)}`;\n\n// Glassdoor search URL\nconst gdQuery = encodeURIComponent(`${primaryKeyword} ${skillSuffix}`.trim());\nconst gdLocation = encodeURIComponent(primaryLocation);\n\nreturn [{\n  json: {\n    profile,\n    primaryKeyword,\n    primaryLocation,\n    skillSuffix,\n    allKeywords:  keywords,\n    allLocations: locations,\n    naukriUrl:    `https://www.naukri.com/${naukriPath}`,\n    glassdoorUrl: `https://www.glassdoor.co.in/Jobs/${toSlug(primaryLocation)}-${toSlug(primaryKeyword)}-jobs-SRCH_IL.0,${primaryLocation.length}_IC${Math.floor(Math.random()*9000+1000)}_KO${primaryLocation.length+1},${primaryLocation.length+1+primaryKeyword.length}.htm`,\n    glassdoorSearchUrl: `https://www.glassdoor.co.in/Job/jobs.htm?suggestCount=0&typedKeyword=${gdQuery}&sc.keyword=${gdQuery}&locT=N&locId=115&jobType=all`\n  }\n}];"
       },
-      "id": "node-code-build-queries",
-      "name": "Build Search Queries",
+      "id": "node-build-queries",
+      "name": "Build Queries",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [340, 300]
+      "position": [340, 400]
     },
+
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://serpapi.com/search.json",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            { "name": "engine",   "value": "google_jobs" },
-            { "name": "q",        "value": "={{ $json.keyword + ' ' + $json.skillSuffix }}" },
-            { "name": "location", "value": "={{ $json.location + ', India' }}" },
-            { "name": "chips",    "value": "date_posted:month" },
-            { "name": "api_key",  "value": "={{ $vars.SERPAPI_KEY }}" },
-            { "name": "hl",       "value": "en" },
-            { "name": "gl",       "value": "in" }
-          ]
-        },
-        "options": {
-          "response": { "response": { "responseFormat": "json" } },
-          "timeout": 15000
-        }
-      },
-      "id": "node-http-serp",
-      "name": "SerpAPI: Google Jobs",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [580, 160],
-      "notes": "Set SERPAPI_KEY in N8N Settings → Variables. Searches Google Jobs (LinkedIn + Indeed + Glassdoor)."
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "https://www.naukri.com/jobapi/v3/search",
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/apify~linkedin-jobs-scraper/run-sync-get-dataset-items?token={{ $vars.APIFY_TOKEN }}&timeout=90",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "appid",        "value": "109" },
-            { "name": "systemid",     "value": "jobsearch" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "User-Agent",   "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
-            { "name": "Referer",      "value": "https://www.naukri.com/" }
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            { "name": "noOfResults", "value": "10" },
-            { "name": "urlType",     "value": "search_by_key_loc" },
-            { "name": "searchType",  "value": "adv" },
-            { "name": "keyword",     "value": "={{ $json.keyword }}" },
-            { "name": "location",    "value": "={{ $json.location }}" },
-            { "name": "page",        "value": "1" },
-            { "name": "experience",  "value": "={{ Math.max(0, ($json.profile.yearsExperience || 1) - 1) }}" }
-          ]
-        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ queries: [$json.primaryKeyword + ' ' + $json.skillSuffix + ' jobs'], locationName: $json.primaryLocation + ', India', rows: 10, contractType: 'F', publishedAt: 'r604800' }) }}",
         "options": {
           "response": { "response": { "responseFormat": "json" } },
-          "timeout": 12000
+          "timeout": 100000
         }
       },
-      "id": "node-http-naukri",
-      "name": "Naukri: Job Search",
+      "id": "node-apify-linkedin",
+      "name": "Apify: LinkedIn Jobs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [580, 440]
+      "position": [620, 160],
+      "notes": "Uses Apify actor apify/linkedin-jobs-scraper. Set APIFY_TOKEN in N8N Settings → Variables. run-sync-get-dataset-items waits for completion and returns results directly."
     },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $vars.FIRECRAWL_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ url: $json.naukriUrl, formats: ['extract'], extract: { prompt: 'Extract all job listings from this Naukri.com page. For each job return: title (job title), company (company name), location (city), salary (salary range if shown), description (first 200 chars of job description), url (full URL to job posting). Return as JSON array under key \"jobs\".', schema: { type: 'object', properties: { jobs: { type: 'array', items: { type: 'object', properties: { title: {type:'string'}, company: {type:'string'}, location: {type:'string'}, salary: {type:'string'}, description: {type:'string'}, url: {type:'string'} } } } }, required: ['jobs'] } } }) }}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 60000
+        }
+      },
+      "id": "node-firecrawl-naukri",
+      "name": "Firecrawl: Naukri",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [620, 400],
+      "notes": "Firecrawl scrapes Naukri search results page and uses AI extraction to pull structured job data. Set FIRECRAWL_KEY in N8N Settings → Variables."
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $vars.FIRECRAWL_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ url: $json.glassdoorSearchUrl, formats: ['extract'], extract: { prompt: 'Extract all job listings from this Glassdoor jobs page. For each job return: title (job title), company (company name), location (city), salary (salary range if shown), description (first 200 chars of description), url (full URL to job posting on glassdoor.co.in). Return as JSON array under key \"jobs\".', schema: { type: 'object', properties: { jobs: { type: 'array', items: { type: 'object', properties: { title: {type:'string'}, company: {type:'string'}, location: {type:'string'}, salary: {type:'string'}, description: {type:'string'}, url: {type:'string'} } } } }, required: ['jobs'] } } }) }}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 60000
+        }
+      },
+      "id": "node-firecrawl-glassdoor",
+      "name": "Firecrawl: Glassdoor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [620, 640],
+      "notes": "Firecrawl scrapes Glassdoor search results and extracts structured job data."
+    },
+
     {
       "parameters": {
         "mode": "passThrough",
         "output": "all"
       },
       "id": "node-merge",
-      "name": "Merge Results",
+      "name": "Merge All Sources",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [820, 300]
+      "position": [900, 400]
     },
+
     {
       "parameters": {
-        "jsCode": "// Collect all raw jobs from SerpAPI and Naukri responses\nconst allItems = $input.all();\n\nlet rawJobs = [];\nlet profile = null;\n\nfor (const item of allItems) {\n  const d = item.json;\n  // SerpAPI response\n  if (d.jobs_results) {\n    for (const j of d.jobs_results) {\n      const link = j.apply_options?.[0]?.link || j.share_link || '#';\n      let src = 'gg';\n      if (link.includes('linkedin.com')) src = 'li';\n      else if (link.includes('glassdoor')) src = 'gd';\n      else if (link.includes('naukri.com')) src = 'kn';\n      rawJobs.push({\n        title:   j.title || '',\n        co:      j.company_name || '',\n        loc:     j.location || '',\n        sal:     j.detected_extensions?.salary || '',\n        src,\n        date:    j.detected_extensions?.posted_at || 'Recent',\n        excerpt: (j.description || '').substring(0, 220),\n        url:     link\n      });\n    }\n  }\n  // Naukri response\n  if (d.jobDetails) {\n    for (const j of d.jobDetails) {\n      rawJobs.push({\n        title:   j.title || '',\n        co:      j.companyName || '',\n        loc:     j.placeholders?.find(p => p.type === 'location')?.label || '',\n        sal:     j.placeholders?.find(p => p.type === 'salary')?.label || '',\n        src:     'kn',\n        date:    j.footerPlaceholderLabel || 'Recent',\n        excerpt: (j.jobDescription || '').replace(/<[^>]+>/g, '').substring(0, 220),\n        url:     j.jdURL || '#'\n      });\n    }\n  }\n  // Carry profile forward\n  if (d.profile) profile = d.profile;\n  if (d.searchKeywords) profile = d; // profile IS the item\n}\n\n// Deduplicate\nconst seen = new Set();\nrawJobs = rawJobs.filter(j => {\n  const key = `${j.title.toLowerCase().trim()}|${j.co.toLowerCase().trim()}`;\n  if (seen.has(key)) return false;\n  seen.add(key); return true;\n});\n\nif (!profile) profile = $('Build Search Queries').first().json.profile || {};\n\nreturn [{ json: { rawJobs, profile } }];"
+        "jsCode": "// Normalize jobs from Apify (LinkedIn), Firecrawl Naukri, Firecrawl Glassdoor\nconst allItems = $input.all();\nconst profile  = $('Build Queries').first().json.profile;\nlet rawJobs = [];\n\nfor (const item of allItems) {\n  const d = item.json;\n\n  // ── Apify LinkedIn response (array at root level)\n  if (Array.isArray(d)) {\n    for (const j of d) {\n      rawJobs.push({\n        title:   j.title       || j.jobTitle     || '',\n        co:      j.companyName || j.company      || '',\n        loc:     j.location    || j.place        || '',\n        sal:     j.salary      || '',\n        src:     'li',\n        date:    j.publishedAt ? new Date(j.publishedAt).toLocaleDateString('en-IN', {day:'numeric',month:'short'}) : 'Recent',\n        excerpt: (j.description || j.descriptionText || '').replace(/<[^>]+>/g,'').substring(0, 220),\n        url:     j.jobUrl || j.url || '#'\n      });\n    }\n    continue;\n  }\n\n  // ── Firecrawl extract response  { success, data: { extract: { jobs: [...] } } }\n  const extracted = d?.data?.extract?.jobs || d?.extract?.jobs || d?.jobs || [];\n  if (Array.isArray(extracted) && extracted.length) {\n    const isGlassdoor = (d?.metadata?.url || d?.data?.metadata?.url || '').includes('glassdoor');\n    for (const j of extracted) {\n      if (!j.title) continue;\n      rawJobs.push({\n        title:   j.title       || '',\n        co:      j.company     || '',\n        loc:     j.location    || '',\n        sal:     j.salary      || '',\n        src:     isGlassdoor ? 'gd' : 'kn',\n        date:    j.postedDate  || 'Recent',\n        excerpt: (j.description || '').substring(0, 220),\n        url:     j.url         || '#'\n      });\n    }\n  }\n}\n\n// Deduplicate by title + company\nconst seen = new Set();\nrawJobs = rawJobs.filter(j => {\n  const key = `${j.title.toLowerCase().trim()}|${j.co.toLowerCase().trim()}`;\n  if (seen.has(key)) return false;\n  seen.add(key); return true;\n});\n\nconsole.log(`Collected ${rawJobs.length} raw jobs from all sources`);\nreturn [{ json: { rawJobs, profile } }];"
       },
-      "id": "node-code-collect",
-      "name": "Collect All Jobs",
+      "id": "node-normalize",
+      "name": "Normalize Jobs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1060, 300]
+      "position": [1140, 400]
     },
+
     {
       "parameters": {
-        "jsCode": "const { rawJobs, profile } = $input.first().json;\n\nconst skillWords      = (profile.skills || []).map(s => s.toLowerCase()).filter(w => w.length > 2);\nconst titleKeywords   = (profile.searchKeywords || []).map(k => k.toLowerCase());\nconst seniorityBoost  = (profile.seniorityKeywords || []).map(w => w.toLowerCase());\nconst avoidWords      = (profile.avoidKeywords || []).map(w => w.toLowerCase());\nconst expYears        = profile.yearsExperience || 0;\n\nconst crossDomainPenalty = ['sales executive','business development','relationship manager',\n  'field sales','telecaller','insurance advisor','loan officer','marketing executive',\n  'hr executive','content writer','seo executive','accountant','chartered accountant'];\nconst overqualified = ['intern','internship','trainee','apprentice','fresher','entry level','entry-level'];\nconst underqualified = ['vp ','vice president','chief ','director of','head of','managing director'];\n\nconst techDomains = ['software','engineering','frontend','backend','fullstack','devops',\n  'data','ml','ai','product','design','analytics','cloud','mobile','security'];\nconst isTech = techDomains.some(d =>\n  (profile.domain || '').toLowerCase().includes(d) ||\n  skillWords.some(s => s.includes(d))\n);\n\nconst scored = rawJobs.map(j => {\n  const titleL = (j.title || '').toLowerCase();\n  const fullTxt = `${j.title} ${j.excerpt}`.toLowerCase();\n  let score = 20;\n\n  // Title keyword match\n  let titleMatched = false;\n  for (const kw of titleKeywords) {\n    const kwWords = kw.split(/\\s+/).filter(w => w.length > 2);\n    const matched = kwWords.filter(w => titleL.includes(w));\n    if (matched.length >= Math.ceil(kwWords.length * 0.6)) { score += 30; titleMatched = true; break; }\n  }\n\n  // Skill matches\n  let skillMatches = 0;\n  for (const s of skillWords) if (fullTxt.includes(s)) skillMatches++;\n  if (skillMatches >= 1) score += Math.min(skillMatches * 5, 25);\n\n  // Seniority alignment\n  for (const w of seniorityBoost) if (titleL.includes(w)) { score += 8; break; }\n\n  // Cross-domain penalty\n  if (isTech) for (const w of crossDomainPenalty) if (titleL.includes(w)) { score -= 40; break; }\n\n  // Seniority mismatch\n  if (expYears >= 4) for (const w of [...avoidWords, ...overqualified]) if (titleL.includes(w)) { score -= 25; break; }\n  if (expYears <= 3) for (const w of underqualified) if (titleL.includes(w)) { score -= 15; break; }\n\n  if (!titleMatched && skillMatches === 0) score -= 25;\n\n  return { ...j, match: Math.min(Math.max(score, 5), 99) };\n});\n\nconst relevant = scored.filter(j => j.match >= 45);\nconst results  = (relevant.length >= 3 ? relevant : scored.filter(j => j.match >= 30))\n  .sort((a, b) => b.match - a.match)\n  .slice(0, 10)\n  .map((j, i) => ({ ...j, id: i + 1 }));\n\nreturn [{ json: { jobs: results, profile } }];"
+        "jsCode": "const { rawJobs, profile } = $input.first().json;\n\nconst skillWords     = (profile.skills          || []).map(s => s.toLowerCase()).filter(w => w.length > 2);\nconst titleKeywords  = (profile.searchKeywords  || []).map(k => k.toLowerCase());\nconst seniorityBoost = (profile.seniorityKeywords || []).map(w => w.toLowerCase());\nconst avoidWords     = (profile.avoidKeywords   || []).map(w => w.toLowerCase());\nconst expYears       = profile.yearsExperience  || 0;\n\nconst crossDomainPenalty = [\n  'sales executive','business development','relationship manager','field sales',\n  'telecaller','insurance advisor','loan officer','marketing executive',\n  'hr executive','content writer','seo executive','accountant'\n];\nconst overqualified  = ['intern','internship','trainee','apprentice','fresher','entry level','entry-level'];\nconst underqualified = ['vp ','vice president','chief ','director of','head of','managing director'];\n\nconst techDomains = ['software','engineering','frontend','backend','fullstack','devops',\n  'data','ml','ai','product','design','analytics','cloud','mobile','security'];\nconst isTech = techDomains.some(d =>\n  (profile.domain || '').toLowerCase().includes(d) ||\n  skillWords.some(s => s.includes(d))\n);\n\nconst scored = rawJobs.map(j => {\n  const titleL  = (j.title || '').toLowerCase();\n  const fullTxt = `${j.title} ${j.excerpt}`.toLowerCase();\n  let score = 20;\n\n  // Title keyword match\n  let titleMatched = false;\n  for (const kw of titleKeywords) {\n    const kwWords = kw.split(/\\s+/).filter(w => w.length > 2);\n    const matched = kwWords.filter(w => titleL.includes(w));\n    if (matched.length >= Math.ceil(kwWords.length * 0.6)) { score += 30; titleMatched = true; break; }\n  }\n\n  // Skill matches in full text\n  let sm = 0;\n  for (const s of skillWords) if (fullTxt.includes(s)) sm++;\n  if (sm >= 1) score += Math.min(sm * 5, 25);\n\n  // Seniority alignment bonus\n  for (const w of seniorityBoost) if (titleL.includes(w)) { score += 8; break; }\n\n  // Cross-domain penalty (non-tech jobs for tech profile)\n  if (isTech) for (const w of crossDomainPenalty) if (titleL.includes(w)) { score -= 40; break; }\n\n  // Seniority mismatch penalties\n  if (expYears >= 4) for (const w of [...avoidWords, ...overqualified])  if (titleL.includes(w)) { score -= 25; break; }\n  if (expYears <= 3) for (const w of underqualified) if (titleL.includes(w)) { score -= 15; break; }\n\n  if (!titleMatched && sm === 0) score -= 25;\n\n  return { ...j, match: Math.min(Math.max(score, 5), 99) };\n});\n\nconst relevant = scored.filter(j => j.match >= 45);\nconst results  = (relevant.length >= 3 ? relevant : scored.filter(j => j.match >= 30))\n  .sort((a, b) => b.match - a.match)\n  .slice(0, 10)\n  .map((j, i) => ({ ...j, id: i + 1 }));\n\nconsole.log(`Returning ${results.length} scored jobs (from ${rawJobs.length} raw)`);\nreturn [{ json: { jobs: results, profile } }];"
       },
-      "id": "node-code-score",
-      "name": "Score & Rank Jobs",
+      "id": "node-score",
+      "name": "Score & Rank",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1300, 300]
+      "position": [1380, 400]
     },
+
     {
       "parameters": {
         "respondWith": "json",
@@ -135,25 +158,33 @@
           }
         }
       },
-      "id": "node-respond-search",
+      "id": "node-respond",
       "name": "Respond with Jobs",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 300]
+      "position": [1620, 400]
     }
   ],
+
   "connections": {
-    "Webhook":             { "main": [[{ "node": "Build Search Queries", "type": "main", "index": 0 }]] },
-    "Build Search Queries":{ "main": [
-      [{ "node": "SerpAPI: Google Jobs", "type": "main", "index": 0 }],
-      [{ "node": "Naukri: Job Search",   "type": "main", "index": 0 }]
-    ]},
-    "SerpAPI: Google Jobs":{ "main": [[{ "node": "Merge Results", "type": "main", "index": 0 }]] },
-    "Naukri: Job Search":  { "main": [[{ "node": "Merge Results", "type": "main", "index": 1 }]] },
-    "Merge Results":       { "main": [[{ "node": "Collect All Jobs", "type": "main", "index": 0 }]] },
-    "Collect All Jobs":    { "main": [[{ "node": "Score & Rank Jobs", "type": "main", "index": 0 }]] },
-    "Score & Rank Jobs":   { "main": [[{ "node": "Respond with Jobs", "type": "main", "index": 0 }]] }
+    "Webhook": {
+      "main": [[{ "node": "Build Queries", "type": "main", "index": 0 }]]
+    },
+    "Build Queries": {
+      "main": [
+        [{ "node": "Apify: LinkedIn Jobs",   "type": "main", "index": 0 }],
+        [{ "node": "Firecrawl: Naukri",       "type": "main", "index": 0 }],
+        [{ "node": "Firecrawl: Glassdoor",    "type": "main", "index": 0 }]
+      ]
+    },
+    "Apify: LinkedIn Jobs":  { "main": [[{ "node": "Merge All Sources", "type": "main", "index": 0 }]] },
+    "Firecrawl: Naukri":     { "main": [[{ "node": "Merge All Sources", "type": "main", "index": 1 }]] },
+    "Firecrawl: Glassdoor":  { "main": [[{ "node": "Merge All Sources", "type": "main", "index": 2 }]] },
+    "Merge All Sources":     { "main": [[{ "node": "Normalize Jobs",    "type": "main", "index": 0 }]] },
+    "Normalize Jobs":        { "main": [[{ "node": "Score & Rank",      "type": "main", "index": 0 }]] },
+    "Score & Rank":          { "main": [[{ "node": "Respond with Jobs", "type": "main", "index": 0 }]] }
   },
+
   "settings": { "executionOrder": "v1" },
   "tags": [{ "name": "job-finder" }]
 }
