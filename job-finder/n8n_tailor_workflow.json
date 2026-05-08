@@ -1,0 +1,160 @@
+{
+  "name": "Job Finder — Step 2: Tailor Resume",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tailor-resume",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-tailor",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "notes": "Receives: { jobs: [{id,title,co,url}], resumeText, profile }"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst jobs = body.jobs || [];\nconst resumeText = body.resumeText || '';\nconst profile = body.profile || {};\n\nif (!jobs.length) throw new Error('No jobs provided');\nif (!resumeText) throw new Error('No resumeText provided');\n\nreturn jobs.map(job => ({\n  json: {\n    jobId:      job.id,\n    jobTitle:   job.title,\n    company:    job.co,\n    jobUrl:     job.url,\n    resumeText,\n    profile\n  }\n}));"
+      },
+      "id": "node-code-split",
+      "name": "Split Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [340, 300],
+      "notes": "Splits the jobs array into individual items so each is processed separately"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://r.jina.ai/' + $json.jobUrl }}",
+        "options": {
+          "response": { "response": { "responseFormat": "text" } },
+          "timeout": 30000
+        }
+      },
+      "id": "node-http-jina",
+      "name": "Jina: Scrape Job URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [580, 300],
+      "notes": "Free scraper — no API key needed. Prepends r.jina.ai to convert any URL to markdown."
+    },
+    {
+      "parameters": {
+        "jsCode": "const allJina = $input.all();\nconst allPrev = $('Split Jobs').all();\n\nreturn allJina.map((jinaItem, i) => {\n  const jinaResp = jinaItem.json;\n  const prev = (allPrev[i] || allPrev[0]).json;\n\n  let jdText = '';\n  if (typeof jinaResp === 'string') {\n    jdText = jinaResp;\n  } else if (jinaResp.data && typeof jinaResp.data === 'string') {\n    jdText = jinaResp.data;\n  } else {\n    jdText = JSON.stringify(jinaResp);\n  }\n\n  jdText = jdText.substring(0, 3000).trim();\n\n  if (!jdText) {\n    jdText = `Job Title: ${prev.jobTitle} at ${prev.company}. No additional description available.`;\n  }\n\n  return {\n    json: {\n      ...prev,\n      jobDescription: jdText\n    }\n  };\n});"
+      },
+      "id": "node-code-extract-jd",
+      "name": "Extract Job Description",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $vars.OPENAI_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'gpt-4o-mini',\n  response_format: { type: 'json_object' },\n  messages: [\n    { role: 'system', content: 'You are a senior resume coach who enriches resumes for specific job opportunities. You enhance and expand — you never cut, shorten, or remove. Return ONLY valid JSON.' },\n    { role: 'user', content: `You are enriching a candidate's resume to better match a target job. Your goal is to make the resume MORE detailed and keyword-rich — not shorter or thinner.\\n\\n=== ORIGINAL RESUME ===\\n${$json.resumeText.substring(0, 5000)}\\n=== END RESUME ===\\n\\n=== TARGET JOB ===\\nJob Title: ${$json.jobTitle}\\nCompany: ${$json.company}\\n${$json.jobDescription}\\n=== END JD ===\\n\\nReturn ONLY this JSON (no markdown):\\n{\\n  \"name\": \"full name exactly as in resume\",\\n  \"contact\": \"email | phone | location — copy exactly from resume\",\\n  \"summary\": \"Rewrite the summary/objective to open with the exact target job title, then weave in 4-6 keywords from the JD naturally. Must be 4-5 sentences. If no summary existed, create one that reflects the candidate's actual experience.\",\\n  \"experience\": [\\n    {\\n      \"title\": \"exact job title from resume — never change\",\\n      \"company\": \"exact company from resume — never change\",\\n      \"dates\": \"exact dates from resume — never change\",\\n      \"bullets\": [\\n        \"For EVERY bullet in the original: rewrite it to be stronger — start with a powerful action verb, quantify the impact if numbers are present or can be inferred, and naturally embed relevant JD keywords where they fit. Keep the same meaning and facts.\",\\n        \"After the enhanced original bullets, add 2-3 NEW bullets per role (for roles relevant to the JD) that highlight achievements or responsibilities from that role which align with the JD. Ground these in what the role realistically involved — do not fabricate specific metrics.\",\\n        \"For roles less relevant to the JD, still enhance each bullet and add 1 new bullet.\"]\\n    }\\n  ],\\n  \"skills\": [\"Start with all skills from the JD that the candidate demonstrably has. Then include all original skills from resume. Add any closely related skills implied by their experience. Aim for 15-20 skills total.\"],\\n  \"education\": [{ \"degree\": \"copy exactly\", \"institution\": \"copy exactly\", \"year\": \"copy exactly\" }],\\n  \"certifications\": [\"Copy all certifications, awards, and achievements exactly from resume. Add none.\"]\\n}\\n\\nNON-NEGOTIABLE RULES:\\n- Include EVERY job role from the original resume — zero exceptions\\n- The final bullet count per role must be HIGHER than the original — never lower\\n- Never change job titles, company names, or dates\\n- Never fabricate specific numbers (revenue, %, headcount) unless they appear in the original\\n- Skills section must be LONGER than the original\\n- The output resume must feel richer and more detailed than the input` }\n  ]\n}) }}",
+        "options": { "response": { "response": { "responseFormat": "json" } }, "timeout": 60000 }
+      },
+      "id": "node-http-openai-tailor",
+      "name": "OpenAI: Tailor Resume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allOpenAI = $input.all();\nconst allPrev = $('Extract Job Description').all();\n\nreturn allOpenAI.map((openaiItem, i) => {\n  const openaiResp = openaiItem.json;\n  const prev = (allPrev[i] || allPrev[0]).json;\n\n  let resumeData;\n  try {\n    const content = openaiResp.choices[0].message.content;\n    resumeData = typeof content === 'string' ? JSON.parse(content) : content;\n  } catch(e) {\n    throw new Error('Failed to parse OpenAI response for job ' + i + ': ' + e.message);\n  }\n\n  return {\n    json: {\n      jobId:    prev.jobId,\n      jobTitle: prev.jobTitle,\n      company:  prev.company,\n      resumeData\n    }\n  };\n});"
+      },
+      "id": "node-code-parse-tailored",
+      "name": "Parse Tailored Resume",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generatedocx-o7g2huviqa-uc.a.run.app",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ resumeData: $json.resumeData, jobTitle: $json.jobTitle, company: $json.company }) }}",
+        "options": { "response": { "response": { "responseFormat": "json" } }, "timeout": 30000 }
+      },
+      "id": "node-http-generate-docx",
+      "name": "Firebase: Generate DOCX",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allDocx = $input.all();\nconst allPrev = $('Parse Tailored Resume').all();\n\nreturn allDocx.map((docxItem, i) => {\n  const docxResp = docxItem.json;\n  const prev = (allPrev[i] || allPrev[0]).json;\n\n  return {\n    json: {\n      jobId:      prev.jobId,\n      jobTitle:   prev.jobTitle,\n      company:    prev.company,\n      docxBase64: docxResp.docxBase64,\n      fileName:   docxResp.fileName\n    }\n  };\n});"
+      },
+      "id": "node-code-collect",
+      "name": "Collect Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "tailoredResumes",
+        "options": {}
+      },
+      "id": "node-aggregate",
+      "name": "Aggregate All",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [2020, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ tailoredResumes: $json.tailoredResumes }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Content-Type",                "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-tailor",
+      "name": "Respond with Resumes",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2260, 300]
+    }
+  ],
+  "connections": {
+    "Webhook":                  { "main": [[{ "node": "Split Jobs",               "type": "main", "index": 0 }]] },
+    "Split Jobs":               { "main": [[{ "node": "Jina: Scrape Job URL",     "type": "main", "index": 0 }]] },
+    "Jina: Scrape Job URL":     { "main": [[{ "node": "Extract Job Description",  "type": "main", "index": 0 }]] },
+    "Extract Job Description":  { "main": [[{ "node": "OpenAI: Tailor Resume",    "type": "main", "index": 0 }]] },
+    "OpenAI: Tailor Resume":    { "main": [[{ "node": "Parse Tailored Resume",    "type": "main", "index": 0 }]] },
+    "Parse Tailored Resume":    { "main": [[{ "node": "Firebase: Generate DOCX",  "type": "main", "index": 0 }]] },
+    "Firebase: Generate DOCX":  { "main": [[{ "node": "Collect Result",           "type": "main", "index": 0 }]] },
+    "Collect Result":           { "main": [[{ "node": "Aggregate All",            "type": "main", "index": 0 }]] },
+    "Aggregate All":            { "main": [[{ "node": "Respond with Resumes",     "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "job-finder" }]
+}

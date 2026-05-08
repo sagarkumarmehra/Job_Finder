@@ -1,0 +1,462 @@
+{
+  "name": "Distributor Document Upload",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "distributor-upload",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "a1b2c3d4-aaaa-aaaa-aaaa-000000000099"
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.fileType }}",
+                    "rightValue": "sheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": true
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.body.fileType }}",
+                    "rightValue": "excel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "excel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.fileType }}",
+                    "rightValue": "csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "csv"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.fileType }}",
+                    "rightValue": "word",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": true
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.body.fileType }}",
+                    "rightValue": "document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "word"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.fileType }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.fileType }}",
+                    "rightValue": "plain",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "txt"
+            }
+          ]
+        },
+        "fallbackOutput": "extra",
+        "options": {}
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000002",
+      "name": "File Type Detector",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000003",
+      "name": "Extract Excel",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "file",
+        "options": {
+          "delimiter": ","
+        }
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000004",
+      "name": "Extract CSV",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [500, 160]
+    },
+    {
+      "parameters": {
+        "operation": "docx",
+        "binaryPropertyName": "file"
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000005",
+      "name": "Extract Word",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [500, 320]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file"
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000006",
+      "name": "Extract PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [500, 480]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse plain text file — handles tab, comma, pipe, semicolon delimiters\nconst binaryKey = 'file';\nconst binaryData = $input.first().binary?.[binaryKey];\nif (!binaryData) return [{ json: { error: 'No binary data found' } }];\n\nconst text = Buffer.from(binaryData.data, 'base64').toString('utf-8');\nconst lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 0);\n\nif (lines.length === 0) return [];\n\n// Auto-detect delimiter\nconst delimiters = [',', '\\t', '|', ';'];\nlet bestDelimiter = ',';\nlet maxCols = 1;\nfor (const d of delimiters) {\n  const count = (lines[0].split(d)).length;\n  if (count > maxCols) { maxCols = count; bestDelimiter = d; }\n}\n\nif (maxCols > 1) {\n  // Delimited text — treat Row 1 as headers\n  const headers = lines[0].split(bestDelimiter).map(h => h.trim().replace(/^\"|\"$/g, ''));\n  return lines.slice(1).map(line => {\n    const vals = line.split(bestDelimiter).map(v => v.trim().replace(/^\"|\"$/g, ''));\n    const row = {};\n    headers.forEach((h, i) => { row[h] = vals[i] ?? ''; });\n    return { json: row };\n  });\n} else {\n  // Plain text — one row per line\n  return lines.map((line, idx) => ({\n    json: { Line_Number: idx + 1, Content: line }\n  }));\n}"
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000007",
+      "name": "Parse TXT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 640]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": false, \"error\": \"Unsupported file type. Please upload Excel, CSV, Word, PDF, or TXT.\"}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000008",
+      "name": "Respond 400 Unsupported",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [500, 800]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000009",
+      "name": "Merge All Branches",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [760, 320]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// ─── STANDARD SCHEMA ────────────────────────────────────────────────\n// Add column name variations your distributors use as aliases.\n// The key is the canonical column name that goes into Google Sheets.\nconst SCHEMA = {\n  \"Customer_Name\":  [\"customer name\",\"customer\",\"cust name\",\"cust\",\"client\",\"client name\",\"name of customer\",\"buyer\",\"account name\",\"party name\",\"consignee\"],\n  \"Order_ID\":       [\"order id\",\"order no\",\"order number\",\"order#\",\"po number\",\"po no\",\"purchase order\",\"ref no\",\"reference number\",\"invoice no\",\"invoice number\",\"bill no\"],\n  \"Product_Name\":   [\"product\",\"product name\",\"item\",\"item name\",\"description\",\"goods\",\"material\",\"sku name\",\"article\",\"product description\",\"item description\"],\n  \"SKU_Code\":       [\"sku\",\"sku code\",\"sku#\",\"item code\",\"product code\",\"article code\",\"material code\",\"part no\",\"part number\",\"barcode\",\"upc\"],\n  \"Quantity\":       [\"qty\",\"quantity\",\"units\",\"unit qty\",\"no of units\",\"pieces\",\"pcs\",\"count\",\"nos\",\"ordered qty\",\"order qty\"],\n  \"Unit_Price\":     [\"unit price\",\"price\",\"rate\",\"unit rate\",\"cost\",\"mrp\",\"selling price\",\"sp\",\"sale price\",\"price per unit\"],\n  \"Amount\":         [\"amount\",\"total\",\"total amount\",\"value\",\"total value\",\"net amount\",\"gross amount\",\"amt\",\"subtotal\",\"net value\",\"invoice amount\",\"bill amount\"],\n  \"Order_Date\":     [\"order date\",\"date\",\"invoice date\",\"po date\",\"dispatch date\",\"transaction date\",\"bill date\",\"sale date\",\"booking date\"],\n  \"Region\":         [\"region\",\"zone\",\"area\",\"territory\",\"location\",\"state\",\"city\",\"branch\"],\n  \"Remarks\":        [\"remarks\",\"notes\",\"comments\",\"note\",\"observation\",\"info\",\"comment\",\"special instructions\"]\n};\n\n// Build reverse alias lookup\nconst ALIAS_MAP = {};\nfor (const [canonical, aliases] of Object.entries(SCHEMA)) {\n  for (const alias of aliases) {\n    ALIAS_MAP[alias.toLowerCase().trim()] = canonical;\n  }\n}\n\n// Character-level similarity (handles typos)\nfunction similarity(a, b) {\n  a = a.toLowerCase().trim();\n  b = b.toLowerCase().trim();\n  if (a === b) return 1;\n  const longer  = a.length >= b.length ? a : b;\n  const shorter = a.length >= b.length ? b : a;\n  if (longer.length === 0) return 1;\n  let matches = 0;\n  for (let i = 0; i < shorter.length; i++) {\n    if (longer.includes(shorter[i])) matches++;\n  }\n  return matches / longer.length;\n}\n\nfunction mapColumn(raw) {\n  const cleaned = raw.toLowerCase().trim();\n  if (ALIAS_MAP[cleaned]) return ALIAS_MAP[cleaned];  // exact match\n  // Fuzzy match with 0.78 threshold\n  let bestScore = 0, bestMatch = null;\n  for (const alias of Object.keys(ALIAS_MAP)) {\n    const score = similarity(cleaned, alias);\n    if (score > bestScore) { bestScore = score; bestMatch = alias; }\n  }\n  if (bestScore >= 0.78 && bestMatch) return ALIAS_MAP[bestMatch];\n  // No match — sanitise and keep original\n  return raw.trim().replace(/\\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');\n}\n\n// Pull metadata from webhook body\nconst webhookBody = $('Webhook').first().json.body ?? {};\nconst distributorName = webhookBody.distributorName ?? 'Unknown';\nconst distributorId   = webhookBody.distributorId   ?? '';\nconst uploaderName    = webhookBody.uploaderName     ?? '';\nconst timestamp       = webhookBody.timestamp        ?? new Date().toISOString();\nconst fileName        = webhookBody.fileName         ?? '';\n\nconst output = [];\n\nfor (const item of $input.all()) {\n  // Word/PDF extractors return { text: '...' } — wrap as Content column\n  const rawRow = (item.json.text !== undefined)\n    ? { Content: item.json.text }\n    : item.json;\n\n  // Remap every column header\n  const mappedRow = {};\n  for (const [rawCol, value] of Object.entries(rawRow)) {\n    if (rawCol === '' || rawCol === null) continue;\n    const canonical = mapColumn(String(rawCol));\n    mappedRow[canonical] = value;\n  }\n\n  output.push({\n    json: {\n      Distributor:      distributorName,\n      Distributor_ID:   distributorId,\n      Uploaded_By:      uploaderName,\n      Upload_Timestamp: timestamp,\n      Source_File:      fileName,\n      ...mappedRow\n    }\n  });\n}\n\nreturn output;"
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000010",
+      "name": "Smart Column Mapping",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 320]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Uploads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000011",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1240, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"message\": \"Document uploaded and data mapped to Google Sheets successfully\", \"distributor\": \"{{ $('Webhook').first().json.body.distributorName }}\", \"file\": \"{{ $('Webhook').first().json.body.fileName }}\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a1b2c3d4-aaaa-aaaa-aaaa-000000000012",
+      "name": "Respond 200 Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1480, 320]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "File Type Detector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Type Detector": {
+      "main": [
+        [
+          {
+            "node": "Extract Excel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Word",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse TXT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400 Unsupported",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Excel": {
+      "main": [
+        [
+          {
+            "node": "Merge All Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract CSV": {
+      "main": [
+        [
+          {
+            "node": "Merge All Branches",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract Word": {
+      "main": [
+        [
+          {
+            "node": "Merge All Branches",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Extract PDF": {
+      "main": [
+        [
+          {
+            "node": "Merge All Branches",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Parse TXT": {
+      "main": [
+        [
+          {
+            "node": "Merge All Branches",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge All Branches": {
+      "main": [
+        [
+          {
+            "node": "Smart Column Mapping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Smart Column Mapping": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

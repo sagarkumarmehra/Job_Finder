@@ -1,0 +1,25 @@
+{
+  "name": "job-search-functions",
+  "version": "1.0.0",
+  "description": "Firebase Functions: PDF extraction + multi-platform job scraping",
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "scripts": {
+    "deploy": "firebase deploy --only functions",
+    "shell": "firebase functions:shell",
+    "serve": "firebase emulators:start --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "busboy": "^1.6.0",
+    "cors": "^2.8.5",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^7.2.5",
+    "docx": "^8.5.0",
+    "mammoth": "^1.8.0",
+    "pdf-parse": "^1.1.1"
+  }
+}

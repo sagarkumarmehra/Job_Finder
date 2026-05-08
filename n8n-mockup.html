@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>N8N Switch Node Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px;
+  }
+
+  .panel {
+    background: #1f1f2e;
+    border: 1px solid #2e2e4a;
+    border-radius: 12px;
+    width: 420px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    overflow: hidden;
+  }
+
+  /* Header */
+  .panel-header {
+    background: #2a2a3e;
+    padding: 16px 20px;
+    border-bottom: 1px solid #2e2e4a;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .node-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #ff6b35, #f7c59f);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .node-title { font-size: 15px; font-weight: 700; color: #fff; }
+  .node-sub   { font-size: 11px; color: #7070a0; margin-top: 1px; }
+
+  /* Body */
+  .panel-body { padding: 20px; }
+
+  /* Field Group */
+  .field-group { margin-bottom: 18px; }
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #7070a0;
+    margin-bottom: 7px;
+  }
+
+  /* Mode selector */
+  .mode-tabs {
+    display: flex;
+    background: #14141f;
+    border: 1px solid #2e2e4a;
+    border-radius: 6px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .mode-tab {
+    flex: 1;
+    text-align: center;
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #7070a0;
+  }
+  .mode-tab.active {
+    background: #ff6b35;
+    color: #fff;
+  }
+
+  /* Input field */
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-field {
+    width: 100%;
+    background: #14141f;
+    border: 1.5px solid #ff6b35;
+    border-radius: 6px;
+    padding: 9px 38px 9px 12px;
+    font-size: 13px;
+    color: #e0e0ff;
+    font-family: "SF Mono", "Fira Code", monospace;
+    outline: none;
+  }
+  .input-field::placeholder { color: #3a3a5a; }
+
+  /* Expression badge */
+  .expr-badge {
+    position: absolute;
+    right: 8px;
+    background: #ff6b35;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 2px 5px;
+    letter-spacing: .04em;
+  }
+
+  /* Glow hint under input */
+  .input-hint {
+    margin-top: 5px;
+    font-size: 11px;
+    color: #ff6b35;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .input-hint::before {
+    content: '⚡';
+    font-size: 10px;
+  }
+
+  /* Data type row */
+  .data-type-row {
+    display: flex;
+    gap: 8px;
+  }
+  .data-type-chip {
+    flex: 1;
+    background: #14141f;
+    border: 1px solid #2e2e4a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #7070a0;
+    text-align: center;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .data-type-chip.active {
+    border-color: #ff6b35;
+    color: #ff6b35;
+    background: rgba(255,107,53,.08);
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: #2e2e4a;
+    margin: 18px 0;
+  }
+
+  /* Routing rule preview */
+  .rules-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #7070a0;
+    margin-bottom: 10px;
+  }
+
+  .rule-row {
+    background: #14141f;
+    border: 1px solid #2e2e4a;
+    border-radius: 8px;
+    padding: 11px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .rule-output {
+    background: #ff6b35;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+  .rule-logic {
+    font-size: 11.5px;
+    color: #a0a0c8;
+    flex: 1;
+    font-family: "SF Mono", monospace;
+  }
+  .rule-logic span { color: #7070a0; font-style: italic; }
+  .rule-logic em   { color: #f7c59f; font-style: normal; }
+
+  /* Add rule btn */
+  .add-rule-btn {
+    width: 100%;
+    background: transparent;
+    border: 1.5px dashed #2e2e4a;
+    border-radius: 8px;
+    padding: 10px;
+    color: #7070a0;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+    transition: all .15s;
+  }
+  .add-rule-btn:hover {
+    border-color: #ff6b35;
+    color: #ff6b35;
+  }
+
+  /* Callout annotation */
+  .callout {
+    background: rgba(255,107,53,.1);
+    border: 1.5px solid rgba(255,107,53,.4);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: #f7c59f;
+    line-height: 1.6;
+  }
+  .callout strong { color: #ff6b35; }
+
+  /* Arrow annotation */
+  .annotation-wrap {
+    position: relative;
+    margin-top: 6px;
+  }
+  .annotation-arrow {
+    position: absolute;
+    left: -30px;
+    top: 8px;
+    font-size: 20px;
+    color: #ff6b35;
+  }
+</style>
+</head>
+<body>
+
+<div class="panel">
+
+  <!-- Header -->
+  <div class="panel-header">
+    <div class="node-icon">⇄</div>
+    <div>
+      <div class="node-title">Switch</div>
+      <div class="node-sub">Detect File Type · Node 2</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="panel-body">
+
+    <!-- Mode -->
+    <div class="field-group">
+      <div class="field-label">Mode</div>
+      <div class="mode-tabs">
+        <div class="mode-tab">Expression</div>
+        <div class="mode-tab active">Rules</div>
+        <div class="mode-tab">JavaScript</div>
+      </div>
+    </div>
+
+    <!-- Value to Test -->
+    <div class="field-group">
+      <div class="field-label">Value to Test</div>
+      <div class="input-wrap">
+        <input
+          class="input-field"
+          type="text"
+          value="{{ $json.body.fileType }}"
+          readonly
+        />
+        <span class="expr-badge">EXPR</span>
+      </div>
+      <div class="input-hint">
+        Reads the MIME type sent by the upload form
+      </div>
+    </div>
+
+    <!-- Data Type -->
+    <div class="field-group">
+      <div class="field-label">Data Type</div>
+      <div class="data-type-row">
+        <div class="data-type-chip active">String ✓</div>
+        <div class="data-type-chip">Number</div>
+        <div class="data-type-chip">Boolean</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Routing Rules preview -->
+    <div class="rules-label">Routing Rules (Output Branches)</div>
+
+    <div class="rule-row">
+      <div class="rule-output">excel</div>
+      <div class="rule-logic"><span>contains</span> <em>"sheet"</em> &nbsp;OR&nbsp; <span>contains</span> <em>"excel"</em></div>
+    </div>
+
+    <div class="rule-row">
+      <div class="rule-output">csv</div>
+      <div class="rule-logic"><span>contains</span> <em>"csv"</em></div>
+    </div>
+
+    <div class="rule-row">
+      <div class="rule-output">word</div>
+      <div class="rule-logic"><span>contains</span> <em>"word"</em> &nbsp;OR&nbsp; <span>contains</span> <em>"document"</em></div>
+    </div>
+
+    <div class="rule-row">
+      <div class="rule-output">pdf</div>
+      <div class="rule-logic"><span>contains</span> <em>"pdf"</em></div>
+    </div>
+
+    <div class="rule-row">
+      <div class="rule-output">txt</div>
+      <div class="rule-logic"><span>contains</span> <em>"plain"</em> &nbsp;OR&nbsp; <span>contains</span> <em>"text"</em></div>
+    </div>
+
+    <button class="add-rule-btn">+ Add Routing Rule</button>
+
+    <!-- Callout -->
+    <div class="callout">
+      <strong>Where does this value come from?</strong><br/>
+      The upload form sends <code>fileType = file.type</code> (the browser MIME type)
+      as a FormData field. N8N places all FormData text fields inside
+      <code>$json.body</code>, so the full path is
+      <strong><code>{{ $json.body.fileType }}</code></strong>.
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

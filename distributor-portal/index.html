@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distributor Portal</title>
+  <style>
+    /* ─── Apple Design Token System ─────────────────────────────────────────── */
+    :root {
+      --apple-black:       #1d1d1f;
+      --apple-secondary:   #6e6e73;
+      --apple-tertiary:    #86868b;
+      --apple-blue:        #0071e3;
+      --apple-blue-hover:  #0077ed;
+      --apple-blue-active: #006edb;
+      --apple-bg:          #ffffff;
+      --apple-bg-light:    #f5f5f7;
+      --apple-border:      #d2d2d7;
+      --apple-border-light:#e8e8ed;
+      --apple-green:       #1d8348;
+      --apple-green-bg:    #f0faf4;
+      --apple-red:         #c0392b;
+      --apple-red-bg:      #fef0ee;
+      --apple-warning-bg:  #fff8ec;
+      --apple-warning:     #b45309;
+
+      --radius-sm:   6px;
+      --radius-md:   12px;
+      --radius-lg:   18px;
+      --radius-pill: 980px;
+
+      --shadow-sm:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:  0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+      --shadow-lg:  0 12px 40px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.05);
+
+      --font-display: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+      --font-text:    -apple-system, "SF Pro Text",    "Helvetica Neue", sans-serif;
+
+      --transition: 0.2s cubic-bezier(.25,.46,.45,.94);
+    }
+
+    /* ─── Reset & Base ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: var(--font-text);
+      background: var(--apple-bg);
+      color: var(--apple-black);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Nav Bar ────────────────────────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,.85);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid var(--apple-border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 52px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo-mark {
+      width: 28px;
+      height: 28px;
+      background: var(--apple-black);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-logo-mark svg { width: 16px; height: 16px; fill: #fff; }
+
+    .nav-logo-text {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--apple-black);
+      letter-spacing: -.01em;
+    }
+
+    .nav-badge {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--apple-secondary);
+      background: var(--apple-bg-light);
+      border: 1px solid var(--apple-border);
+      border-radius: var(--radius-pill);
+      padding: 3px 10px;
+      letter-spacing: .01em;
+    }
+
+    /* ─── Hero Header ────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 72px 40px 56px;
+      max-width: 1080px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--apple-blue);
+      margin-bottom: 14px;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 700;
+      color: var(--apple-black);
+      letter-spacing: -.03em;
+      line-height: 1.08;
+      margin-bottom: 16px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, var(--apple-blue) 0%, #34aadc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 19px;
+      color: var(--apple-secondary);
+      line-height: 1.5;
+      max-width: 520px;
+      letter-spacing: -.01em;
+    }
+
+    /* ─── Stats Strip ────────────────────────────────────────────────────────── */
+    .stats {
+      display: flex;
+      gap: 1px;
+      max-width: 1080px;
+      margin: 0 auto 56px;
+      padding: 0 40px;
+      width: 100%;
+    }
+
+    .stat-card {
+      flex: 1;
+      background: var(--apple-bg-light);
+      padding: 20px 24px;
+      border-radius: 0;
+    }
+    .stat-card:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+    .stat-card:last-child  { border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--apple-black);
+      letter-spacing: -.03em;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--apple-secondary);
+      margin-top: 2px;
+      letter-spacing: -.01em;
+    }
+
+    /* ─── Main Content ───────────────────────────────────────────────────────── */
+    .main {
+      flex: 1;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+      width: 100%;
+    }
+
+    /* ─── Section Header ─────────────────────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--apple-black);
+      letter-spacing: -.02em;
+    }
+
+    .section-count {
+      font-size: 13px;
+      color: var(--apple-secondary);
+      background: var(--apple-bg-light);
+      border: 1px solid var(--apple-border);
+      border-radius: var(--radius-pill);
+      padding: 4px 12px;
+    }
+
+    /* ─── Table Card ─────────────────────────────────────────────────────────── */
+    .table-card {
+      background: var(--apple-bg);
+      border: 1px solid var(--apple-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--apple-bg-light);
+      border-bottom: 1px solid var(--apple-border);
+    }
+
+    thead th {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--apple-secondary);
+      padding: 14px 24px;
+      text-align: left;
+    }
+
+    thead th:last-child { text-align: center; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--apple-border-light);
+      transition: background var(--transition);
+      cursor: default;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody tr:hover { background: #fafafa; }
+
+    tbody td {
+      padding: 22px 24px;
+      vertical-align: middle;
+    }
+
+    /* ─── Distributor Name Cell ──────────────────────────────────────────────── */
+    .dist-cell { display: flex; align-items: center; gap: 14px; }
+
+    .dist-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      flex-shrink: 0;
+    }
+
+    .dist-avatar.blue  { background: #e8f0fe; color: #1a73e8; }
+    .dist-avatar.teal  { background: #e6f4f1; color: #00897b; }
+    .dist-avatar.amber { background: #fef3e2; color: #e8a202; }
+
+    .dist-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--apple-black);
+      letter-spacing: -.01em;
+    }
+
+    .dist-id {
+      font-size: 12px;
+      color: var(--apple-tertiary);
+      margin-top: 2px;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    /* ─── Region / HQ Cells ──────────────────────────────────────────────────── */
+    .region-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--apple-secondary);
+      background: var(--apple-bg-light);
+      border: 1px solid var(--apple-border);
+      border-radius: var(--radius-pill);
+      padding: 4px 12px;
+    }
+
+    .region-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .dot-north  { background: #3b82f6; }
+    .dot-west   { background: #8b5cf6; }
+    .dot-south  { background: #10b981; }
+
+    .hq-text {
+      font-size: 14px;
+      color: var(--apple-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hq-icon {
+      width: 16px;
+      height: 16px;
+      opacity: .5;
+    }
+
+    /* ─── Upload Cell ────────────────────────────────────────────────────────── */
+    .upload-cell { text-align: center; }
+
+    .upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--apple-blue);
+      color: #fff;
+      font-family: var(--font-text);
+      font-size: 13.5px;
+      font-weight: 500;
+      letter-spacing: -.01em;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 9px 20px;
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+      white-space: nowrap;
+    }
+
+    .upload-btn:hover:not(:disabled) {
+      background: var(--apple-blue-hover);
+      box-shadow: 0 4px 12px rgba(0,113,227,.35);
+      transform: translateY(-1px);
+    }
+
+    .upload-btn:active:not(:disabled) {
+      background: var(--apple-blue-active);
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .upload-btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .upload-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .file-input { display: none; }
+
+    /* ─── Status Cell ────────────────────────────────────────────────────────── */
+    .status-cell { min-width: 220px; }
+
+    .status-idle {
+      font-size: 13px;
+      color: var(--apple-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-idle::before {
+      content: '';
+      display: block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--apple-border);
+    }
+
+    /* Loading state */
+    .status-loading {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--apple-secondary);
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--apple-border);
+      border-top-color: var(--apple-blue);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Progress bar */
+    .progress-track {
+      height: 3px;
+      background: var(--apple-border-light);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--apple-blue), #34aadc);
+      border-radius: 2px;
+      width: 0%;
+      transition: width .4s ease;
+      animation: indeterminate 1.4s ease infinite;
+    }
+
+    @keyframes indeterminate {
+      0%   { transform: translateX(-100%); width: 60%; }
+      100% { transform: translateX(200%);  width: 60%; }
+    }
+
+    /* Success state */
+    .status-success {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--apple-green);
+      background: var(--apple-green-bg);
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      animation: fadeSlideIn .3s ease both;
+    }
+
+    .status-success svg { width: 16px; height: 16px; fill: var(--apple-green); flex-shrink: 0; }
+
+    /* Error state */
+    .status-error {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--apple-red);
+      background: var(--apple-red-bg);
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      animation: fadeSlideIn .3s ease both;
+    }
+
+    .status-error svg { width: 16px; height: 16px; fill: var(--apple-red); flex-shrink: 0; margin-top: 1px; }
+
+    .status-error-detail {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .status-retry {
+      font-size: 11px;
+      color: var(--apple-red);
+      opacity: .8;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Info Banner ────────────────────────────────────────────────────────── */
+    .info-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--apple-bg-light);
+      border: 1px solid var(--apple-border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+
+    .info-banner svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--apple-blue);
+      flex-shrink: 0;
+    }
+
+    .info-text {
+      font-size: 13.5px;
+      color: var(--apple-secondary);
+      line-height: 1.5;
+    }
+
+    .info-text strong { color: var(--apple-black); }
+
+    /* ─── Toast ──────────────────────────────────────────────────────────────── */
+    #toast-container {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--apple-black);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      box-shadow: var(--shadow-lg);
+      pointer-events: auto;
+      animation: toastIn .3s cubic-bezier(.34,1.56,.64,1) both;
+      max-width: 340px;
+    }
+
+    .toast.toast-exit { animation: toastOut .25s ease forwards; }
+
+    .toast svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+
+    .toast.success { background: #1a472a; }
+    .toast.error   { background: #7f1d1d; }
+    .toast.info    { background: var(--apple-black); }
+
+    @keyframes toastIn  { from { opacity:0; transform:translateY(12px) scale(.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes toastOut { from { opacity:1; transform:translateY(0); }               to { opacity:0; transform:translateY(8px); } }
+
+    /* ─── Accepted Formats Pill Row ─────────────────────────────────────────── */
+    .format-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .format-pill {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      border-radius: var(--radius-pill);
+      padding: 3px 10px;
+      border: 1px solid;
+    }
+
+    .pill-excel  { color: #1a6140; background: #e6f9f0; border-color: #a7f3d0; }
+    .pill-csv    { color: #1a4f6e; background: #e0f2fe; border-color: #bae6fd; }
+    .pill-word   { color: #1e3a8a; background: #eff6ff; border-color: #bfdbfe; }
+    .pill-pdf    { color: #7c2d12; background: #fff7ed; border-color: #fed7aa; }
+    .pill-txt    { color: #4a1d96; background: #f5f3ff; border-color: #ddd6fe; }
+
+    /* ─── Footer ─────────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--apple-border-light);
+      padding: 24px 40px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--apple-tertiary);
+      letter-spacing: .01em;
+    }
+
+    footer a { color: var(--apple-tertiary); text-decoration: none; }
+    footer a:hover { color: var(--apple-secondary); }
+
+    /* ─── Responsive ─────────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav, .hero, .stats, .main { padding-left: 20px; padding-right: 20px; }
+      .hero { padding-top: 48px; padding-bottom: 36px; }
+      .stats { flex-direction: column; gap: 8px; }
+      .stat-card { border-radius: var(--radius-md) !important; }
+      .table-card { overflow-x: auto; }
+      thead th, tbody td { padding: 14px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ──────────────────────────────────────────────────────────── -->
+  <nav class="nav" role="banner">
+    <a class="nav-logo" href="#">
+      <div class="nav-logo-mark">
+        <!-- Grid icon -->
+        <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      </div>
+      <span class="nav-logo-text">CRM Portal</span>
+    </a>
+    <span class="nav-badge">Internal · Sales</span>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────────────────────────────── -->
+  <header class="hero" role="main">
+    <p class="hero-eyebrow">Document Management</p>
+    <h1 class="hero-title">Distributor<br><span>Upload Portal</span></h1>
+    <p class="hero-subtitle">Upload documents for your assigned distributors. Data is automatically extracted and synced to Google Sheets.</p>
+  </header>
+
+  <!-- ── Stats ───────────────────────────────────────────────────────────────── -->
+  <div class="stats" role="region" aria-label="Summary statistics">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total">3</div>
+      <div class="stat-label">Assigned Distributors</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-uploaded">0</div>
+      <div class="stat-label">Uploaded This Session</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">10 MB</div>
+      <div class="stat-label">Max File Size</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="font-size:18px; padding-top:4px;">
+        <span class="format-pills">
+          <span class="format-pill pill-excel">XLS</span>
+          <span class="format-pill pill-csv">CSV</span>
+          <span class="format-pill pill-word">DOC</span>
+          <span class="format-pill pill-pdf">PDF</span>
+          <span class="format-pill pill-txt">TXT</span>
+        </span>
+      </div>
+      <div class="stat-label" style="margin-top:8px;">Accepted Formats</div>
+    </div>
+  </div>
+
+  <!-- ── Main Table ───────────────────────────────────────────────────────────── -->
+  <main class="main" role="main">
+
+    <div class="info-banner" role="note">
+      <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+      <p class="info-text">
+        <strong>How it works:</strong> Click "Upload Document" next to a distributor, select your file (Excel, CSV, Word, or PDF), and the data will be automatically extracted and loaded into Google Sheets. You'll receive a confirmation once the upload is complete.
+      </p>
+    </div>
+
+    <div class="section-header">
+      <h2 class="section-title">Your Distributors</h2>
+      <span class="section-count">3 assigned</span>
+    </div>
+
+    <div class="table-card">
+      <table role="grid" aria-label="Distributor list">
+        <thead>
+          <tr>
+            <th scope="col">Distributor</th>
+            <th scope="col">Region</th>
+            <th scope="col">HQ</th>
+            <th scope="col" style="text-align:center;">Upload Document</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody id="distributor-tbody">
+          <!-- Rows injected by JS -->
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────────────── -->
+  <footer>
+    <p>© 2026 CRM Portal &nbsp;·&nbsp; <a href="#">Internal Use Only</a> &nbsp;·&nbsp; Powered by N8N &amp; Google Sheets</p>
+  </footer>
+
+  <!-- ── Toast Container ───────────────────────────────────────────────────────── -->
+  <div id="toast-container" role="status" aria-live="polite"></div>
+
+  <!-- ── Script ─────────────────────────────────────────────────────────────────── -->
+  <script>
+    // ─── CONFIG — swap this URL with your live N8N webhook URL ────────────────
+    const N8N_WEBHOOK_URL = "https://your-n8n-instance.com/webhook/distributor-upload";
+    const UPLOADER_NAME   = "Sales Rep";      // Replace with logged-in user's name
+    const MAX_FILE_BYTES  = 10 * 1024 * 1024; // 10 MB
+
+    const ALLOWED_TYPES = new Set([
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+      "application/vnd.ms-excel",                                           // .xls
+      "text/csv",                                                            // .csv
+      "application/csv",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+      "application/msword",                                                  // .doc
+      "application/pdf",                                                     // .pdf
+      "text/plain",                                                          // .txt
+    ]);
+
+    const ALLOWED_EXTENSIONS = /\.(xlsx|xls|csv|doc|docx|pdf|txt)$/i;
+
+    // ─── Distributor Data ──────────────────────────────────────────────────────
+    const DISTRIBUTORS = [
+      { id: "dist_001", name: "Apex Distributors Pvt. Ltd.", region: "North", hq: "New Delhi",  avatarLabel: "AP", avatarClass: "blue"  },
+      { id: "dist_002", name: "Horizon Trade Co.",           region: "West",  hq: "Mumbai",     avatarLabel: "HT", avatarClass: "teal"  },
+      { id: "dist_003", name: "Crest Supply Ltd.",           region: "South", hq: "Chennai",    avatarLabel: "CS", avatarClass: "amber" },
+    ];
+
+    const REGION_DOT = { North: "dot-north", West: "dot-west", South: "dot-south" };
+
+    // ─── Session State ─────────────────────────────────────────────────────────
+    let uploadedCount = 0;
+
+    // ─── Icons (inline SVG strings) ────────────────────────────────────────────
+    const ICON_UPLOAD = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a.5.5 0 01.354.146l3 3a.5.5 0 01-.708.708L8.5 3.207V10.5a.5.5 0 01-1 0V3.207L5.354 5.354a.5.5 0 11-.708-.708l3-3A.5.5 0 018 1.5zM2.5 13a.5.5 0 010-1h11a.5.5 0 010 1h-11z"/></svg>`;
+    const ICON_CHECK  = `<svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>`;
+    const ICON_ERROR  = `<svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 3.75a.75.75 0 011.5 0v4.5a.75.75 0 01-1.5 0v-4.5zm.75 8.5a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>`;
+    const ICON_INFO   = `<svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>`;
+    const ICON_HQ     = `<svg class="hq-icon" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 1.314C5.406-1.42 1.056.38 1.056 4.217c0 2.613 2.069 4.703 4.377 6.477a18.657 18.657 0 001.969 1.32.75.75 0 00.796 0 18.657 18.657 0 001.969-1.32c2.308-1.774 4.377-3.864 4.377-6.477C14.544.38 10.194-1.42 8 1.314z" clip-rule="evenodd"/></svg>`;
+
+    // ─── Render Table ──────────────────────────────────────────────────────────
+    function renderTable() {
+      const tbody = document.getElementById("distributor-tbody");
+      tbody.innerHTML = "";
+
+      DISTRIBUTORS.forEach(dist => {
+        const tr = document.createElement("tr");
+        tr.dataset.distId = dist.id;
+
+        tr.innerHTML = `
+          <td>
+            <div class="dist-cell">
+              <div class="dist-avatar ${dist.avatarClass}">${dist.avatarLabel}</div>
+              <div>
+                <div class="dist-name">${dist.name}</div>
+                <div class="dist-id">${dist.id}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="region-badge">
+              <span class="region-dot ${REGION_DOT[dist.region] || ''}"></span>
+              ${dist.region}
+            </span>
+          </td>
+          <td>
+            <span class="hq-text">${ICON_HQ} ${dist.hq}</span>
+          </td>
+          <td class="upload-cell">
+            <button
+              class="upload-btn"
+              id="btn-${dist.id}"
+              aria-label="Upload document for ${dist.name}"
+              onclick="triggerFileInput('${dist.id}')"
+            >
+              ${ICON_UPLOAD} Upload Document
+            </button>
+            <input
+              type="file"
+              class="file-input"
+              id="input-${dist.id}"
+              accept=".xlsx,.xls,.csv,.doc,.docx,.pdf,.txt"
+              aria-hidden="true"
+              onchange="handleFileSelected(event, '${dist.id}', '${dist.name}')"
+            />
+          </td>
+          <td class="status-cell">
+            <div class="status-idle" id="status-${dist.id}">Awaiting upload</div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ─── File Picker Trigger ───────────────────────────────────────────────────
+    function triggerFileInput(distId) {
+      document.getElementById(`input-${distId}`).click();
+    }
+
+    // ─── File Selected → Validate → Upload ────────────────────────────────────
+    function handleFileSelected(event, distId, distName) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Reset input so same file can be re-selected after failure
+      event.target.value = "";
+
+      // Client-side validation: file type
+      const typeOk = ALLOWED_TYPES.has(file.type) || ALLOWED_EXTENSIONS.test(file.name);
+      if (!typeOk) {
+        setStatus(distId, "error", "Only Excel, CSV, Word, PDF, or Text files are accepted.");
+        return;
+      }
+
+      // Client-side validation: file size
+      if (file.size > MAX_FILE_BYTES) {
+        setStatus(distId, "error", "File too large. Maximum size is 10 MB.");
+        return;
+      }
+
+      // All good — begin upload
+      uploadFile(file, distId, distName);
+    }
+
+    // ─── Upload via Fetch ──────────────────────────────────────────────────────
+    async function uploadFile(file, distId, distName) {
+      const btn = document.getElementById(`btn-${distId}`);
+      btn.disabled = true;
+
+      setStatus(distId, "loading", "Uploading…");
+
+      const formData = new FormData();
+      formData.append("file",            file);
+      formData.append("distributorId",   distId);
+      formData.append("distributorName", distName);
+      formData.append("uploaderName",    UPLOADER_NAME);
+      formData.append("timestamp",       new Date().toISOString());
+      formData.append("fileName",        file.name);
+      formData.append("fileType",        file.type || "unknown");
+
+      try {
+        const response = await fetch(N8N_WEBHOOK_URL, {
+          method: "POST",
+          body:   formData,
+          // No Content-Type header — browser sets it with boundary automatically
+        });
+
+        if (!response.ok) {
+          let errMsg = `Server error (${response.status})`;
+          try {
+            const body = await response.json();
+            if (body.error) errMsg = body.error;
+          } catch (_) { /* non-JSON body — use default message */ }
+          throw new Error(errMsg);
+        }
+
+        // Success
+        uploadedCount++;
+        document.getElementById("stat-uploaded").textContent = uploadedCount;
+        setStatus(distId, "success", `Uploaded successfully · ${file.name}`);
+        showToast("success", `Document uploaded for ${distName}`);
+
+      } catch (err) {
+        console.error("[Upload error]", err);
+        const isNetwork = err instanceof TypeError && err.message.toLowerCase().includes("fetch");
+        const msg = isNetwork
+          ? "Network error. Check your connection and try again."
+          : err.message || "Upload failed. Please try again.";
+        setStatus(distId, "error", msg);
+        showToast("error", `Upload failed for ${distName}`);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ─── Set Row Status ────────────────────────────────────────────────────────
+    function setStatus(distId, state, message) {
+      const cell = document.getElementById(`status-${distId}`);
+
+      if (state === "idle") {
+        cell.outerHTML = `<div class="status-idle" id="status-${distId}">Awaiting upload</div>`;
+        return;
+      }
+
+      if (state === "loading") {
+        cell.outerHTML = `
+          <div class="status-loading" id="status-${distId}">
+            <div class="spinner" role="status" aria-label="Uploading"></div>
+            <div>
+              <div>${message}</div>
+              <div class="progress-track"><div class="progress-fill"></div></div>
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (state === "success") {
+        cell.outerHTML = `
+          <div class="status-success" id="status-${distId}" role="alert">
+            ${ICON_CHECK}
+            <span>${escHtml(message)}</span>
+          </div>`;
+        return;
+      }
+
+      if (state === "error") {
+        cell.outerHTML = `
+          <div class="status-error" id="status-${distId}" role="alert">
+            ${ICON_ERROR}
+            <div class="status-error-detail">
+              <span>${escHtml(message)}</span>
+              <span class="status-retry">Click "Upload Document" to try again.</span>
+            </div>
+          </div>`;
+        return;
+      }
+    }
+
+    // ─── Toast Notification ────────────────────────────────────────────────────
+    function showToast(type, message) {
+      const container = document.getElementById("toast-container");
+
+      const icons = {
+        success: ICON_CHECK,
+        error:   ICON_ERROR,
+        info:    ICON_INFO,
+      };
+
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `${icons[type] || icons.info} <span>${escHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      // Auto-dismiss after 5 s
+      setTimeout(() => {
+        toast.classList.add("toast-exit");
+        toast.addEventListener("animationend", () => toast.remove(), { once: true });
+      }, 5000);
+    }
+
+    // ─── Escape HTML (XSS guard) ───────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g,  "&amp;")
+        .replace(/</g,  "&lt;")
+        .replace(/>/g,  "&gt;")
+        .replace(/"/g,  "&quot;")
+        .replace(/'/g,  "&#39;");
+    }
+
+    // ─── Init ──────────────────────────────────────────────────────────────────
+    renderTable();
+  </script>
+</body>
+</html>

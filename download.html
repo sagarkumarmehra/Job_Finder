@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Download N8N Workflow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: #f5f5f7;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 48px 40px;
+      text-align: center;
+      box-shadow: 0 4px 32px rgba(0,0,0,.10);
+      max-width: 420px;
+      width: 100%;
+    }
+    .icon {
+      width: 64px; height: 64px;
+      background: #0071e3;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+    }
+    .icon svg { width: 32px; height: 32px; fill: #fff; }
+    h1 {
+      font-size: 22px; font-weight: 700;
+      color: #1d1d1f; letter-spacing: -.02em;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 14px; color: #6e6e73;
+      line-height: 1.6; margin-bottom: 32px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #0071e3; color: #fff;
+      font-size: 15px; font-weight: 500;
+      border: none; border-radius: 980px;
+      padding: 13px 28px; cursor: pointer;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .btn:hover { background: #0077ed; }
+    .btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .note {
+      margin-top: 20px;
+      font-size: 12px; color: #86868b;
+    }
+    .steps {
+      text-align: left;
+      background: #f5f5f7;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-top: 28px;
+    }
+    .steps h3 { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #6e6e73; margin-bottom: 12px; }
+    .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; color: #1d1d1f; }
+    .step:last-child { margin-bottom: 0; }
+    .step-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #0071e3; color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .badge {
+      display: inline-block;
+      background: #e8f0fe; color: #1a73e8;
+      font-size: 10px; font-weight: 600;
+      border-radius: 4px; padding: 2px 6px;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">
+    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+  </div>
+  <h1>N8N Workflow — Ready to Import</h1>
+  <p>Click below to download the complete Distributor Document Upload workflow. Import it directly into your N8N Cloud instance.</p>
+
+  <a class="btn" id="download-btn" href="#" download="distributor-upload-workflow.json">
+    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    Download Workflow JSON
+  </a>
+
+  <p class="note">File: distributor-upload-workflow.json &nbsp;·&nbsp; 12 nodes pre-wired</p>
+
+  <div class="steps">
+    <h3>How to Import</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Go to <strong>sagar2kumar2h.app.n8n.cloud</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Click <strong>+ New Workflow</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Click <strong>⋯ menu</strong> → <strong>Import from File</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Select the downloaded <strong>.json</strong> file</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>Add Google Sheets credential &amp; set your Sheet ID <span class="badge">required</span></div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div>Toggle <strong>Active</strong> → copy Production Webhook URL</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Embed the workflow JSON and trigger download via Blob URL
+  const workflow = {"name":"Distributor Document Upload","nodes":[{"parameters":{"httpMethod":"POST","path":"distributor-upload","responseMode":"lastNode","options":{}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000001","name":"Webhook","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,300],"webhookId":"a1b2c3d4-aaaa-aaaa-aaaa-000000000099"},{"parameters":{"mode":"rules","rules":{"values":[{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"loose"},"conditions":[{"leftValue":"={{ $json.body.fileType }}","rightValue":"sheet","operator":{"type":"string","operation":"contains","singleValue":true}},{"leftValue":"={{ $json.body.fileType }}","rightValue":"excel","operator":{"type":"string","operation":"contains","singleValue":true}}],"combinator":"or"},"renameOutput":true,"outputKey":"excel"},{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"loose"},"conditions":[{"leftValue":"={{ $json.body.fileType }}","rightValue":"csv","operator":{"type":"string","operation":"contains","singleValue":true}}],"combinator":"or"},"renameOutput":true,"outputKey":"csv"},{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"loose"},"conditions":[{"leftValue":"={{ $json.body.fileType }}","rightValue":"word","operator":{"type":"string","operation":"contains","singleValue":true}},{"leftValue":"={{ $json.body.fileType }}","rightValue":"document","operator":{"type":"string","operation":"contains","singleValue":true}}],"combinator":"or"},"renameOutput":true,"outputKey":"word"},{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"loose"},"conditions":[{"leftValue":"={{ $json.body.fileType }}","rightValue":"pdf","operator":{"type":"string","operation":"contains","singleValue":true}}],"combinator":"or"},"renameOutput":true,"outputKey":"pdf"},{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"loose"},"conditions":[{"leftValue":"={{ $json.body.fileType }}","rightValue":"plain","operator":{"type":"string","operation":"contains","singleValue":true}}],"combinator":"or"},"renameOutput":true,"outputKey":"txt"}]},"fallbackOutput":"extra","options":{}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000002","name":"File Type Detector","type":"n8n-nodes-base.switch","typeVersion":3,"position":[240,300]},{"parameters":{"operation":"fromFile","binaryPropertyName":"file","options":{}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000003","name":"Extract Excel","type":"n8n-nodes-base.spreadsheetFile","typeVersion":2,"position":[500,0]},{"parameters":{"operation":"fromFile","binaryPropertyName":"file","options":{"delimiter":","}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000004","name":"Extract CSV","type":"n8n-nodes-base.spreadsheetFile","typeVersion":2,"position":[500,160]},{"parameters":{"operation":"docx","binaryPropertyName":"file"},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000005","name":"Extract Word","type":"n8n-nodes-base.extractFromFile","typeVersion":1,"position":[500,320]},{"parameters":{"operation":"pdf","binaryPropertyName":"file"},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000006","name":"Extract PDF","type":"n8n-nodes-base.extractFromFile","typeVersion":1,"position":[500,480]},{"parameters":{"mode":"runOnceForAllItems","jsCode":"const binaryKey = 'file';\nconst binaryData = $input.first().binary?.[binaryKey];\nif (!binaryData) return [{ json: { error: 'No binary data found' } }];\nconst text = Buffer.from(binaryData.data, 'base64').toString('utf-8');\nconst lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 0);\nif (lines.length === 0) return [];\nconst delimiters = [',', '\\t', '|', ';'];\nlet bestDelimiter = ',';\nlet maxCols = 1;\nfor (const d of delimiters) {\n  const count = lines[0].split(d).length;\n  if (count > maxCols) { maxCols = count; bestDelimiter = d; }\n}\nif (maxCols > 1) {\n  const headers = lines[0].split(bestDelimiter).map(h => h.trim().replace(/^\"|\"$/g, ''));\n  return lines.slice(1).map(line => {\n    const vals = line.split(bestDelimiter).map(v => v.trim().replace(/^\"|\"$/g, ''));\n    const row = {};\n    headers.forEach((h, i) => { row[h] = vals[i] ?? ''; });\n    return { json: row };\n  });\n} else {\n  return lines.map((line, idx) => ({ json: { Line_Number: idx + 1, Content: line } }));\n}"},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000007","name":"Parse TXT","type":"n8n-nodes-base.code","typeVersion":2,"position":[500,640]},{"parameters":{"respondWith":"json","responseBody":"{\"success\":false,\"error\":\"Unsupported file type.\"}","options":{"responseCode":400}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000008","name":"Respond 400 Unsupported","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[500,800]},{"parameters":{"mode":"append","options":{}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000009","name":"Merge All Branches","type":"n8n-nodes-base.merge","typeVersion":3,"position":[760,320]},{"parameters":{"mode":"runOnceForAllItems","jsCode":"const SCHEMA = {\n  \"Customer_Name\":[\"customer name\",\"customer\",\"cust name\",\"cust\",\"client\",\"client name\",\"name of customer\",\"buyer\",\"account name\",\"party name\",\"consignee\"],\n  \"Order_ID\":[\"order id\",\"order no\",\"order number\",\"order#\",\"po number\",\"po no\",\"purchase order\",\"ref no\",\"reference number\",\"invoice no\",\"invoice number\",\"bill no\"],\n  \"Product_Name\":[\"product\",\"product name\",\"item\",\"item name\",\"description\",\"goods\",\"material\",\"sku name\",\"article\",\"product description\",\"item description\"],\n  \"SKU_Code\":[\"sku\",\"sku code\",\"sku#\",\"item code\",\"product code\",\"article code\",\"material code\",\"part no\",\"part number\",\"barcode\",\"upc\"],\n  \"Quantity\":[\"qty\",\"quantity\",\"units\",\"unit qty\",\"no of units\",\"pieces\",\"pcs\",\"count\",\"nos\",\"ordered qty\",\"order qty\"],\n  \"Unit_Price\":[\"unit price\",\"price\",\"rate\",\"unit rate\",\"cost\",\"mrp\",\"selling price\",\"sp\",\"sale price\",\"price per unit\"],\n  \"Amount\":[\"amount\",\"total\",\"total amount\",\"value\",\"total value\",\"net amount\",\"gross amount\",\"amt\",\"subtotal\",\"net value\",\"invoice amount\",\"bill amount\"],\n  \"Order_Date\":[\"order date\",\"date\",\"invoice date\",\"po date\",\"dispatch date\",\"transaction date\",\"bill date\",\"sale date\",\"booking date\"],\n  \"Region\":[\"region\",\"zone\",\"area\",\"territory\",\"location\",\"state\",\"city\",\"branch\"],\n  \"Remarks\":[\"remarks\",\"notes\",\"comments\",\"note\",\"observation\",\"info\",\"comment\",\"special instructions\"]\n};\nconst ALIAS_MAP = {};\nfor (const [canonical, aliases] of Object.entries(SCHEMA)) {\n  for (const alias of aliases) { ALIAS_MAP[alias.toLowerCase().trim()] = canonical; }\n}\nfunction similarity(a, b) {\n  a = a.toLowerCase().trim(); b = b.toLowerCase().trim();\n  if (a === b) return 1;\n  const longer = a.length >= b.length ? a : b;\n  const shorter = a.length >= b.length ? b : a;\n  if (longer.length === 0) return 1;\n  let matches = 0;\n  for (let i = 0; i < shorter.length; i++) { if (longer.includes(shorter[i])) matches++; }\n  return matches / longer.length;\n}\nfunction mapColumn(raw) {\n  const cleaned = raw.toLowerCase().trim();\n  if (ALIAS_MAP[cleaned]) return ALIAS_MAP[cleaned];\n  let bestScore = 0, bestMatch = null;\n  for (const alias of Object.keys(ALIAS_MAP)) {\n    const score = similarity(cleaned, alias);\n    if (score > bestScore) { bestScore = score; bestMatch = alias; }\n  }\n  if (bestScore >= 0.78 && bestMatch) return ALIAS_MAP[bestMatch];\n  return raw.trim().replace(/\\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');\n}\nconst webhookBody = $('Webhook').first().json.body ?? {};\nconst distributorName = webhookBody.distributorName ?? 'Unknown';\nconst distributorId = webhookBody.distributorId ?? '';\nconst uploaderName = webhookBody.uploaderName ?? '';\nconst timestamp = webhookBody.timestamp ?? new Date().toISOString();\nconst fileName = webhookBody.fileName ?? '';\nconst output = [];\nfor (const item of $input.all()) {\n  const rawRow = (item.json.text !== undefined) ? { Content: item.json.text } : item.json;\n  const mappedRow = {};\n  for (const [rawCol, value] of Object.entries(rawRow)) {\n    if (!rawCol) continue;\n    mappedRow[mapColumn(String(rawCol))] = value;\n  }\n  output.push({ json: { Distributor: distributorName, Distributor_ID: distributorId, Uploaded_By: uploaderName, Upload_Timestamp: timestamp, Source_File: fileName, ...mappedRow } });\n}\nreturn output;"},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000010","name":"Smart Column Mapping","type":"n8n-nodes-base.code","typeVersion":2,"position":[1000,320]},{"parameters":{"operation":"append","documentId":{"__rl":true,"value":"YOUR_GOOGLE_SHEET_ID_HERE","mode":"id"},"sheetName":{"__rl":true,"value":"Uploads","mode":"name"},"columns":{"mappingMode":"autoMapInputData","value":{},"matchingColumns":[],"schema":[]},"options":{"handlingExtraData":"insertInNewColumn"}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000011","name":"Google Sheets","type":"n8n-nodes-base.googleSheets","typeVersion":4,"position":[1240,320]},{"parameters":{"respondWith":"json","responseBody":"{\"success\":true,\"message\":\"Document uploaded and data mapped to Google Sheets successfully\"}","options":{"responseCode":200}},"id":"a1b2c3d4-aaaa-aaaa-aaaa-000000000012","name":"Respond 200 Success","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1480,320]}],"connections":{"Webhook":{"main":[[{"node":"File Type Detector","type":"main","index":0}]]},"File Type Detector":{"main":[[{"node":"Extract Excel","type":"main","index":0}],[{"node":"Extract CSV","type":"main","index":0}],[{"node":"Extract Word","type":"main","index":0}],[{"node":"Extract PDF","type":"main","index":0}],[{"node":"Parse TXT","type":"main","index":0}],[{"node":"Respond 400 Unsupported","type":"main","index":0}]]},"Extract Excel":{"main":[[{"node":"Merge All Branches","type":"main","index":0}]]},"Extract CSV":{"main":[[{"node":"Merge All Branches","type":"main","index":1}]]},"Extract Word":{"main":[[{"node":"Merge All Branches","type":"main","index":2}]]},"Extract PDF":{"main":[[{"node":"Merge All Branches","type":"main","index":3}]]},"Parse TXT":{"main":[[{"node":"Merge All Branches","type":"main","index":4}]]},"Merge All Branches":{"main":[[{"node":"Smart Column Mapping","type":"main","index":0}]]},"Smart Column Mapping":{"main":[[{"node":"Google Sheets","type":"main","index":0}]]},"Google Sheets":{"main":[[{"node":"Respond 200 Success","type":"main","index":0}]]}},"active":false,"settings":{"executionOrder":"v1"},"pinData":{},"meta":{"templateCredsSetupCompleted":false},"tags":[]};
+
+  const btn = document.getElementById('download-btn');
+  const blob = new Blob([JSON.stringify(workflow, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  btn.href = url;
+  btn.download = 'distributor-upload-workflow.json';
+</script>
+</body>
+</html>
