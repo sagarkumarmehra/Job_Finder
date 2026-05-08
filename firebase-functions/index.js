@@ -165,16 +165,20 @@ async function summarizeProfile(resumeText, locations, roles, salMin, salMax) {
 ───────────────────────────────────────────────────────────────────────────── */
 async function searchSerpAPI(profile, locations) {
   const results = [];
-  // Use seniority-aware titles from the profile
   const keywords = profile.searchKeywords || ['Software Engineer'];
+  // Include top 2 skills in the query so Google returns targeted results
+  const topSkills = (profile.skills || []).slice(0, 2);
+
   for (const q of buildQueries(keywords, locations, 4)) {
     try {
+      // e.g. "Senior Product Manager SQL Analytics" — far more targeted than just the title
+      const skillSuffix = topSkills.length ? ' ' + topSkills.join(' ') : '';
       const r = await axios.get('https://serpapi.com/search.json', {
         params: {
           engine: 'google_jobs',
-          q: `${q.keyword} jobs`,
+          q: `${q.keyword}${skillSuffix}`,
           location: `${q.location}, India`,
-          chips: 'date_posted:week',
+          chips: 'date_posted:month',
           api_key: process.env.SERPAPI_KEY,
           hl: 'en', gl: 'in'
         },
@@ -271,68 +275,105 @@ function deduplicate(jobs) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Scoring — experience-aware
-   Rewards:  skill/domain/keyword matches
-   Penalizes: seniority mismatch (junior job for senior candidate or vice versa)
+   Scoring — relevance-first, experience-aware
+   Base: 20.  A job must earn its way up via real matches.
+   Hard minimum: 45 — anything below is discarded as irrelevant.
 ───────────────────────────────────────────────────────────────────────────── */
 function scoreAndRank(jobs, profile) {
-  const skillWords = [
-    profile.domain,
-    ...(profile.skills || []),
-    ...(profile.searchKeywords || [])
-  ].join(' ').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const skillWords = (profile.skills || []).map(s => s.toLowerCase()).filter(w => w.length > 2);
+  const titleKeywords = (profile.searchKeywords || []).map(k => k.toLowerCase());
+  const domainWords = (profile.domain || '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const seniorityBoost = (profile.seniorityKeywords || []).map(w => w.toLowerCase());
+  const avoidWords = (profile.avoidKeywords || []).map(w => w.toLowerCase());
+  const expYears = profile.yearsExperience || 0;
 
-  const seniorityBoostWords  = (profile.seniorityKeywords || []).map(w => w.toLowerCase());
-  const avoidWords           = (profile.avoidKeywords     || []).map(w => w.toLowerCase());
-  const expYears             = profile.yearsExperience || 0;
+  // Non-technical domains that would be irrelevant for a technical profile
+  const crossDomainPenaltyWords = ['sales executive', 'business development', 'relationship manager',
+    'field sales', 'telecaller', 'insurance advisor', 'loan officer', 'real estate agent',
+    'marketing executive', 'hr executive', 'recruiter', 'content writer', 'seo executive',
+    'accountant', 'chartered accountant', 'ca ', 'doctor', 'nurse', 'teacher', 'lecturer'];
 
-  // Words that signal seniority mismatch in the opposite direction
-  const overqualifiedSignals = ['intern', 'trainee', 'apprentice', 'graduate trainee', 'entry level', 'entry-level', 'fresher'];
-  const underqualifiedSignals = ['vp ', 'vice president', 'chief ', 'cto', 'cso', 'cpo', 'director of', 'head of', 'managing director'];
+  const overqualifiedSignals = ['intern', 'internship', 'trainee', 'apprentice', 'graduate trainee',
+    'entry level', 'entry-level', 'fresher', '0-1 year', '0 - 1 year'];
+  const underqualifiedSignals = ['vp ', 'vice president', 'chief ', ' cto', ' cso', ' cpo',
+    'director of', 'head of', 'managing director', 'president'];
 
-  return jobs
-    .map(j => {
-      const txt = `${j.title} ${j.co} ${j.excerpt}`.toLowerCase();
-      let score = 50;
+  // Determine if profile is technical (most roles are)
+  const techDomains = ['software', 'engineering', 'frontend', 'backend', 'fullstack', 'devops',
+    'data', 'ml', 'ai', 'product', 'design', 'analytics', 'cloud', 'mobile', 'security'];
+  const isTechProfile = techDomains.some(d =>
+    (profile.domain || '').toLowerCase().includes(d) ||
+    skillWords.some(s => s.includes(d))
+  );
 
-      // +5 per matching skill/domain word (cap at +30)
-      let skillBonus = 0;
-      for (const w of skillWords) {
-        if (txt.includes(w)) skillBonus = Math.min(skillBonus + 5, 30);
+  const scored = jobs.map(j => {
+    const titleLower   = (j.title || '').toLowerCase();
+    const fullText     = `${j.title} ${j.excerpt}`.toLowerCase();
+    let score = 20; // start low — must earn relevance
+
+    // ── Title keyword match (strongest signal) ──────────────────────────────
+    let titleMatched = false;
+    for (const kw of titleKeywords) {
+      // Check word-by-word: "product manager" in "Senior Product Manager" → match
+      const kwWords = kw.split(/\s+/).filter(w => w.length > 2);
+      const matchedWords = kwWords.filter(w => titleLower.includes(w));
+      if (matchedWords.length >= Math.ceil(kwWords.length * 0.6)) {
+        score += 30; // strong match — title aligns with what we searched
+        titleMatched = true;
+        break;
       }
-      score += skillBonus;
+    }
 
-      // +8 if the job title explicitly matches seniority level
-      for (const w of seniorityBoostWords) {
-        if (j.title.toLowerCase().includes(w)) { score += 8; break; }
+    // ── Skill matches in full text ───────────────────────────────────────────
+    let skillMatches = 0;
+    for (const s of skillWords) {
+      if (fullText.includes(s)) skillMatches++;
+    }
+    // At least 1 skill mention is required for relevance; each extra adds 5 (cap +25)
+    if (skillMatches >= 1) score += Math.min(skillMatches * 5, 25);
+
+    // ── Domain matches ───────────────────────────────────────────────────────
+    for (const d of domainWords) {
+      if (fullText.includes(d)) { score += 5; break; }
+    }
+
+    // ── Seniority alignment ──────────────────────────────────────────────────
+    for (const w of seniorityBoost) {
+      if (titleLower.includes(w)) { score += 8; break; }
+    }
+
+    // ── Cross-domain penalty — sales/HR/non-tech jobs for tech profiles ──────
+    if (isTechProfile) {
+      for (const w of crossDomainPenaltyWords) {
+        if (titleLower.includes(w)) { score -= 40; break; }
       }
+    }
 
-      // Seniority mismatch penalties
-      const titleLower = j.title.toLowerCase();
-
-      if (expYears >= 4) {
-        // Experienced candidate — penalise junior/entry roles
-        for (const w of [...avoidWords, ...overqualifiedSignals]) {
-          if (titleLower.includes(w)) { score -= 20; break; }
-        }
+    // ── Seniority mismatch penalties ─────────────────────────────────────────
+    if (expYears >= 4) {
+      for (const w of [...avoidWords, ...overqualifiedSignals]) {
+        if (titleLower.includes(w)) { score -= 25; break; }
       }
-
-      if (expYears <= 3) {
-        // Junior candidate — penalise VP/Director/C-suite roles
-        for (const w of underqualifiedSignals) {
-          if (titleLower.includes(w)) { score -= 15; break; }
-        }
+    }
+    if (expYears <= 3) {
+      for (const w of underqualifiedSignals) {
+        if (titleLower.includes(w)) { score -= 15; break; }
       }
+    }
 
-      // If user specified preferred roles and this job matches one — bonus
-      if (profile.searchKeywords) {
-        for (const kw of profile.searchKeywords) {
-          if (titleLower.includes(kw.toLowerCase())) { score += 10; break; }
-        }
-      }
+    // ── Hard penalty if zero skill AND zero title match ──────────────────────
+    if (!titleMatched && skillMatches === 0) score -= 25;
 
-      return { ...j, match: Math.min(Math.max(score, 10), 99) };
-    })
+    return { ...j, match: Math.min(Math.max(score, 5), 99) };
+  });
+
+  // Hard filter: discard anything that scored below 45 (genuinely irrelevant)
+  const relevant = scored.filter(j => j.match >= 45);
+
+  // If filtering left us with < 3 results, relax threshold to 30
+  const results = relevant.length >= 3 ? relevant : scored.filter(j => j.match >= 30);
+
+  return results
     .sort((a, b) => b.match - a.match)
     .map((j, i) => ({ ...j, id: i + 1 }));
 }
