@@ -868,6 +868,35 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     </div>
   </div>
 
+  <!-- Profile card — shown after search -->
+  <div id="profileCard" style="display:none; margin: 0 auto 0; max-width:960px; padding:0 24px 0;">
+    <div style="background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <span style="font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-3);">Resume Analysis</span>
+        <span id="pcSeniority" style="font-size:11px; font-weight:600; background:var(--blue-lt); color:var(--blue); padding:3px 10px; border-radius:20px; text-transform:capitalize;"></span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+        <div>
+          <div style="font-size:11px; color:var(--text-3); margin-bottom:6px; font-weight:500;">EXPERIENCE</div>
+          <div id="pcExp" style="font-size:15px; font-weight:600; color:var(--text);"></div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:var(--text-3); margin-bottom:6px; font-weight:500;">DOMAIN</div>
+          <div id="pcDomain" style="font-size:15px; font-weight:600; color:var(--text); text-transform:capitalize;"></div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:var(--text-3); margin-bottom:6px; font-weight:500;">SEARCHING FOR</div>
+          <div id="pcKeywords" style="font-size:13px; color:var(--text-2); line-height:1.5;"></div>
+        </div>
+      </div>
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+        <div style="font-size:11px; color:var(--text-3); margin-bottom:8px; font-weight:500;">TOP SKILLS DETECTED</div>
+        <div id="pcSkills" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+      </div>
+      <div id="pcSummaryWrap" style="margin-top:12px; font-size:13px; color:var(--text-2); font-style:italic; line-height:1.5; display:none;"></div>
+    </div>
+  </div>
+
   <div class="r-body">
     <div class="job-list" id="jobList"></div>
 
@@ -1124,14 +1153,16 @@ async function beginSearch() {
   await runLoadingAnimation();
   overlay.classList.remove('show');
 
+  let apiProfile = null;
   try {
     const data = await apiPromise;
-    apiJobs = data.jobs || (Array.isArray(data) ? data : null);
+    apiJobs    = data.jobs    || (Array.isArray(data) ? data : null);
+    apiProfile = data.profile || null;
   } catch (e) {
     console.warn('Webhook call failed, falling back to demo data:', e.message);
   }
 
-  showResults(apiJobs || JOBS);
+  showResults(apiJobs || JOBS, apiProfile);
 }
 
 async function callWebhook() {
@@ -1270,7 +1301,7 @@ function addManual() {
 }
 document.getElementById('manualUrl')?.addEventListener('keydown', e => { if (e.key === 'Enter') addManual(); });
 
-function showResults(jobs) {
+function showResults(jobs, profile) {
   jobs = jobs || JOBS;
   document.getElementById('page-upload').classList.remove('active');
   const p2 = document.getElementById('page-results');
@@ -1287,6 +1318,38 @@ function showResults(jobs) {
 
   document.getElementById('rCount').textContent = jobs.length + ' jobs found';
   document.getElementById('rPrefLine').textContent = [...roles].join(', ') + ' · ' + locs.join(', ');
+
+  // Render profile card if we got real profile data from Firebase
+  const card = document.getElementById('profileCard');
+  if (profile) {
+    document.getElementById('pcSeniority').textContent  = profile.seniority || 'mid';
+    document.getElementById('pcExp').textContent        = profile.yearsExperience
+      ? profile.yearsExperience + (profile.yearsExperience === 1 ? ' year' : ' years')
+      : 'Not detected';
+    document.getElementById('pcDomain').textContent     = profile.domain || '—';
+    document.getElementById('pcKeywords').textContent   = (profile.searchKeywords || []).join(', ') || '—';
+
+    const skillsEl = document.getElementById('pcSkills');
+    skillsEl.innerHTML = '';
+    (profile.skills || []).forEach(s => {
+      const tag = document.createElement('span');
+      tag.textContent = s;
+      tag.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--text-2);';
+      skillsEl.appendChild(tag);
+    });
+
+    if (profile.summary) {
+      const sw = document.getElementById('pcSummaryWrap');
+      sw.textContent = '"' + profile.summary + '"';
+      sw.style.display = 'block';
+    }
+
+    card.style.display = 'block';
+    card.style.opacity = '0';
+    setTimeout(() => { card.style.transition = 'opacity 0.4s ease'; card.style.opacity = '1'; }, 50);
+  } else {
+    card.style.display = 'none';
+  }
 }
 
 function goBack() {
