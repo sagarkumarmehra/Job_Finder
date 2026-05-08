@@ -1326,16 +1326,18 @@ function showResults(jobs, profile) {
   document.getElementById('rCount').textContent = jobs.length + ' jobs found';
   document.getElementById('rPrefLine').textContent = [...roles].join(', ') + ' · ' + locs.join(', ');
 
-  // Render profile card if we got real profile data from Firebase
   const card = document.getElementById('profileCard');
   if (profile) {
-    document.getElementById('pcSeniority').textContent  = profile.seniority || 'mid';
-    document.getElementById('pcTitle').textContent      = profile.currentTitle || '—';
-    document.getElementById('pcExp').textContent        = profile.yearsExperience
-      ? profile.yearsExperience + (profile.yearsExperience === 1 ? ' year' : ' years')
-      : 'Not detected';
-    document.getElementById('pcDomain').textContent     = profile.domain || '—';
-    document.getElementById('pcKeywords').textContent   = (profile.searchKeywords || []).join('\n') || '—';
+    document.getElementById('pcSeniority').textContent = profile.seniority || 'mid';
+    document.getElementById('pcTitle').textContent     = profile.currentTitle || '—';
+    document.getElementById('pcExp').textContent       = profile.yearsExperience
+      ? profile.yearsExperience + ' yrs experience'
+      : '—';
+    document.getElementById('pcDomain').textContent   = profile.domain || '—';
+
+    // Show each search keyword on its own line with a bullet
+    document.getElementById('pcKeywords').innerHTML   =
+      (profile.searchKeywords || []).map(k => `• ${k}`).join('<br>') || '—';
 
     const skillsEl = document.getElementById('pcSkills');
     skillsEl.innerHTML = '';
@@ -1353,10 +1355,12 @@ function showResults(jobs, profile) {
     }
 
     card.style.display = 'block';
-    card.style.opacity = '0';
-    setTimeout(() => { card.style.transition = 'opacity 0.4s ease'; card.style.opacity = '1'; }, 50);
   } else {
-    card.style.display = 'none';
+    // No live profile — show a notice so user knows they're seeing demo jobs
+    card.innerHTML = '<div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:12px;padding:14px 20px;font-size:13px;color:#7A6000;">' +
+      '⚠️ <strong>Demo results shown</strong> — the Firebase API did not return a profile. ' +
+      'Check that your resume uploaded correctly and the API key is set.</div>';
+    card.style.display = 'block';
   }
 }
 
