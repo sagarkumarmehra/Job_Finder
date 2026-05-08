@@ -37,8 +37,8 @@ exports.processSearch = onRequest(RUN_OPTS, async (req, res) => {
     const profile = await summarizeProfile(resumeText, locations, roles, salaryMin, salaryMax);
 
     const [serpJobs, naukriJobs] = await Promise.all([
-      process.env.SERPAPI_KEY ? searchSerpAPI(profile.searchKeywords, locations) : [],
-      searchNaukri(profile.searchKeywords, locations, salaryMin, salaryMax)
+      process.env.SERPAPI_KEY ? searchSerpAPI(profile, locations) : [],
+      searchNaukri(profile, locations, salaryMin, salaryMax)
     ]);
 
     const jobs = scoreAndRank(deduplicate([...serpJobs, ...naukriJobs]), profile);
@@ -74,8 +74,8 @@ exports.searchJobs = onRequest(RUN_OPTS, async (req, res) => {
   try {
     const profile = await summarizeProfile(resumeText, locations, roles, salaryMin, salaryMax);
     const [serpJobs, naukriJobs] = await Promise.all([
-      process.env.SERPAPI_KEY ? searchSerpAPI(profile.searchKeywords, locations) : [],
-      searchNaukri(profile.searchKeywords, locations, salaryMin, salaryMax)
+      process.env.SERPAPI_KEY ? searchSerpAPI(profile, locations) : [],
+      searchNaukri(profile, locations, salaryMin, salaryMax)
     ]);
     const jobs = scoreAndRank(deduplicate([...serpJobs, ...naukriJobs]), profile);
     res.json({ jobs: jobs.slice(0, 10), profile });
@@ -115,6 +115,7 @@ async function summarizeProfile(resumeText, locations, roles, salMin, salMax) {
       skills: [], yearsExperience: 0, seniority: 'mid',
       domain: (roles || []).join(' ') || 'general',
       searchKeywords: roles?.length ? roles : ['Software Engineer'],
+      seniorityKeywords: ['Software Engineer'],
       summary: 'Job seeker'
     };
   }
@@ -124,8 +125,20 @@ async function summarizeProfile(resumeText, locations, roles, salMin, salMax) {
     `Resume:\n${resumeText.substring(0, 4000)}\n\n` +
     `Preferences: Locations: ${(locations||[]).join(', ')||'any'} | ` +
     `Roles: ${(roles||[]).join(', ')||'any'} | Salary: ₹${salMin}L–₹${salMax}L\n\n` +
-    `JSON schema: { "skills":[], "yearsExperience":0, "seniority":"junior|mid|senior|lead", ` +
-    `"domain":"", "searchKeywords":["3-5 titles"], "summary":"one sentence" }`;
+    `JSON schema:\n` +
+    `{\n` +
+    `  "skills": ["top 8 technical skills"],\n` +
+    `  "yearsExperience": <integer total years>,\n` +
+    `  "seniority": "fresher|junior|mid|senior|lead|principal",\n` +
+    `  "domain": "primary domain e.g. frontend, backend, data science",\n` +
+    `  "searchKeywords": ["3-5 exact job titles matching their level, e.g. Senior Product Manager"],\n` +
+    `  "seniorityKeywords": ["seniority prefixes/suffixes appropriate for this person, e.g. Senior, Lead, Staff"],\n` +
+    `  "experienceRange": { "min": <yearsExperience - 1>, "max": <yearsExperience + 3> },\n` +
+    `  "avoidKeywords": ["junior", "entry level", "fresher", "intern", "trainee"] if yearsExperience > 3 else [],\n` +
+    `  "summary": "one sentence professional summary"\n` +
+    `}\n\n` +
+    `IMPORTANT: searchKeywords MUST reflect the seniority level. ` +
+    `For someone with 8 years experience, use "Senior Software Engineer" not "Software Engineer".`;
 
   const r = await axios.post(
     'https://api.openai.com/v1/chat/completions',
@@ -139,21 +152,31 @@ async function summarizeProfile(resumeText, locations, roles, salMin, salMax) {
     },
     { headers: { Authorization: `Bearer ${process.env.OPENAI_KEY}` } }
   );
-  return JSON.parse(r.data.choices[0].message.content);
+  const parsed = JSON.parse(r.data.choices[0].message.content);
+
+  // Ensure avoidKeywords always exists
+  parsed.avoidKeywords = parsed.avoidKeywords || [];
+  parsed.seniorityKeywords = parsed.seniorityKeywords || [];
+  return parsed;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SerpAPI — Google Jobs (LinkedIn + Glassdoor + Indeed)
 ───────────────────────────────────────────────────────────────────────────── */
-async function searchSerpAPI(keywords, locations) {
+async function searchSerpAPI(profile, locations) {
   const results = [];
+  // Use seniority-aware titles from the profile
+  const keywords = profile.searchKeywords || ['Software Engineer'];
   for (const q of buildQueries(keywords, locations, 4)) {
     try {
       const r = await axios.get('https://serpapi.com/search.json', {
         params: {
-          engine: 'google_jobs', q: `${q.keyword} jobs`,
-          location: `${q.location}, India`, chips: 'date_posted:week',
-          api_key: process.env.SERPAPI_KEY, hl: 'en', gl: 'in'
+          engine: 'google_jobs',
+          q: `${q.keyword} jobs`,
+          location: `${q.location}, India`,
+          chips: 'date_posted:week',
+          api_key: process.env.SERPAPI_KEY,
+          hl: 'en', gl: 'in'
         },
         timeout: 15000
       });
@@ -173,14 +196,21 @@ async function searchSerpAPI(keywords, locations) {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Naukri — unofficial API
+   experience param: minimum years expected by candidate
 ───────────────────────────────────────────────────────────────────────────── */
-async function searchNaukri(keywords, locations, salaryMin, salaryMax) {
+async function searchNaukri(profile, locations, salaryMin, salaryMax) {
   const results = [];
+  const keywords = profile.searchKeywords || ['Software Engineer'];
+  // Map years of experience to Naukri's experience filter
+  const expYears = profile.yearsExperience || 0;
+  const naukriExp = expYears <= 0 ? 0 : Math.max(0, expYears - 1); // allow ±1 year flexibility
+
   for (const q of buildQueries(keywords, locations, 4)) {
     try {
       const params = {
         noOfResults: 10, urlType: 'search_by_key_loc', searchType: 'adv',
-        keyword: q.keyword, location: q.location, page: 1, experience: 0
+        keyword: q.keyword, location: q.location, page: 1,
+        experience: naukriExp  // use actual experience from profile
       };
       if (salaryMin) params.salary = `${salaryMin * 100000},${salaryMax * 100000}`;
 
@@ -211,9 +241,9 @@ async function searchNaukri(keywords, locations, salaryMin, salaryMax) {
    Helpers
 ───────────────────────────────────────────────────────────────────────────── */
 function buildQueries(keywords, locations, max) {
-  const kws = (keywords || []).slice(0, 2);
+  const kws  = (keywords  || []).slice(0, 2);
   const locs = (locations || ['India']).slice(0, 2);
-  const out = [];
+  const out  = [];
   for (const keyword of kws)
     for (const location of locs) {
       if (out.length >= max) return out;
@@ -240,16 +270,68 @@ function deduplicate(jobs) {
   });
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Scoring — experience-aware
+   Rewards:  skill/domain/keyword matches
+   Penalizes: seniority mismatch (junior job for senior candidate or vice versa)
+───────────────────────────────────────────────────────────────────────────── */
 function scoreAndRank(jobs, profile) {
-  const words = [profile.domain, ...(profile.skills||[]), profile.seniority,
-    ...(profile.searchKeywords||[])].join(' ').toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  const skillWords = [
+    profile.domain,
+    ...(profile.skills || []),
+    ...(profile.searchKeywords || [])
+  ].join(' ').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+
+  const seniorityBoostWords  = (profile.seniorityKeywords || []).map(w => w.toLowerCase());
+  const avoidWords           = (profile.avoidKeywords     || []).map(w => w.toLowerCase());
+  const expYears             = profile.yearsExperience || 0;
+
+  // Words that signal seniority mismatch in the opposite direction
+  const overqualifiedSignals = ['intern', 'trainee', 'apprentice', 'graduate trainee', 'entry level', 'entry-level', 'fresher'];
+  const underqualifiedSignals = ['vp ', 'vice president', 'chief ', 'cto', 'cso', 'cpo', 'director of', 'head of', 'managing director'];
 
   return jobs
     .map(j => {
       const txt = `${j.title} ${j.co} ${j.excerpt}`.toLowerCase();
-      let score = 55;
-      for (const w of words) if (txt.includes(w)) score = Math.min(score + 5, 99);
-      return { ...j, match: score };
+      let score = 50;
+
+      // +5 per matching skill/domain word (cap at +30)
+      let skillBonus = 0;
+      for (const w of skillWords) {
+        if (txt.includes(w)) skillBonus = Math.min(skillBonus + 5, 30);
+      }
+      score += skillBonus;
+
+      // +8 if the job title explicitly matches seniority level
+      for (const w of seniorityBoostWords) {
+        if (j.title.toLowerCase().includes(w)) { score += 8; break; }
+      }
+
+      // Seniority mismatch penalties
+      const titleLower = j.title.toLowerCase();
+
+      if (expYears >= 4) {
+        // Experienced candidate — penalise junior/entry roles
+        for (const w of [...avoidWords, ...overqualifiedSignals]) {
+          if (titleLower.includes(w)) { score -= 20; break; }
+        }
+      }
+
+      if (expYears <= 3) {
+        // Junior candidate — penalise VP/Director/C-suite roles
+        for (const w of underqualifiedSignals) {
+          if (titleLower.includes(w)) { score -= 15; break; }
+        }
+      }
+
+      // If user specified preferred roles and this job matches one — bonus
+      if (profile.searchKeywords) {
+        for (const kw of profile.searchKeywords) {
+          if (titleLower.includes(kw.toLowerCase())) { score += 10; break; }
+        }
+      }
+
+      return { ...j, match: Math.min(Math.max(score, 10), 99) };
     })
     .sort((a, b) => b.match - a.match)
     .map((j, i) => ({ ...j, id: i + 1 }));
