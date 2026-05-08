@@ -1186,8 +1186,8 @@ async function callWebhook() {
   fd.append('resume', file, file.name);
   fd.append('locations', JSON.stringify(locs));
   fd.append('roles', JSON.stringify([...roles]));
-  fd.append('salaryMin', String(sliderState.lo));
-  fd.append('salaryMax', String(sliderState.hi));
+  fd.append('salaryMin', String(rLo.value));
+  fd.append('salaryMax', String(rHi.value));
 
   const resp = await fetch(FIREBASE_URL, { method: 'POST', body: fd });
   if (!resp.ok) throw new Error(`Server responded with HTTP ${resp.status}`);
