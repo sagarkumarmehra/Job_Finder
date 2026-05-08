@@ -1,0 +1,131 @@
+{
+  "name": "Job Finder — Step 1: Analyze Resume",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analyze-resume",
+        "responseMode": "responseNode",
+        "options": { "binaryData": true }
+      },
+      "id": "node-webhook-analyze",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "notes": "Frontend POSTs multipart/form-data: resume (PDF file), locations (JSON string), roles (JSON string), salaryMin, salaryMax."
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst bin  = item.binary || {};\n\nconst resumeBin = bin.resume || bin.data || bin.file;\nif (!resumeBin) throw new Error('No resume binary found. Ensure the file field is named \"resume\" and Binary Data is ON in the Webhook node.');\n\nconst body = item.json?.body ?? item.json ?? {};\n\nconst parseJSON = (val, fallback) => {\n  if (!val) return fallback;\n  try { return JSON.parse(val); } catch(_) { return fallback; }\n};\n\nreturn [{\n  json: {\n    resumeBase64: resumeBin.data,\n    mimeType:     resumeBin.mimeType || 'application/pdf',\n    fileName:     resumeBin.fileName || 'resume.pdf',\n    locations:    parseJSON(body.locations, []),\n    roles:        parseJSON(body.roles, []),\n    salaryMin:    parseInt(body.salaryMin ?? '0',   10),\n    salaryMax:    parseInt(body.salaryMax ?? '200', 10)\n  }\n}];"
+      },
+      "id": "node-code-extract-binary",
+      "name": "Extract Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [340, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.FIREBASE_EXTRACT_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pdf: $json.resumeBase64 }) }}",
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      },
+      "id": "node-http-parse-pdf",
+      "name": "Parse PDF Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [580, 300],
+      "notes": "Calls Firebase extractResume to convert PDF bytes → plain text. Set FIREBASE_EXTRACT_URL in N8N Settings → Variables."
+    },
+    {
+      "parameters": {
+        "jsCode": "const pdfResult = $input.first().json;\nconst prefs     = $('Extract Binary').first().json;\n\nif (!pdfResult.text) throw new Error('PDF text extraction returned empty. Firebase response: ' + JSON.stringify(pdfResult));\n\nreturn [{\n  json: {\n    resumeText: pdfResult.text,\n    locations:  prefs.locations,\n    roles:      prefs.roles,\n    salaryMin:  prefs.salaryMin,\n    salaryMax:  prefs.salaryMax\n  }\n}];"
+      },
+      "id": "node-code-merge-text",
+      "name": "Merge Resume + Prefs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { resumeText, locations, roles, salaryMin, salaryMax } = $input.first().json;\n\nconst userRoles = (roles || []).join(', ') || 'not specified';\nconst userLocs  = (locations || []).join(', ') || 'any';\n\nconst prompt =\n  `You are a career analyst. Read this resume carefully and extract a precise job-search profile.\\n\\n` +\n  `=== RESUME ===\\n${resumeText.substring(0, 5000)}\\n=== END ===\\n\\n` +\n  `=== PREFERENCES ===\\nDesired roles: ${userRoles}\\nLocations: ${userLocs}\\nSalary: ₹${salaryMin}L–₹${salaryMax}L\\n\\n` +\n  `Return ONLY valid JSON (no markdown):\\n` +\n  `{\\n` +\n  `  \"currentTitle\": \"most recent job title from resume\",\\n` +\n  `  \"skills\": [\"up to 10 specific technical skills/tools found in resume\"],\\n` +\n  `  \"yearsExperience\": <integer total years>,\\n` +\n  `  \"seniority\": \"fresher|junior|mid|senior|lead|principal\",\\n` +\n  `  \"domain\": \"specific domain: frontend engineering / backend / data science / product management / devops / mobile / design / marketing\",\\n` +\n  `  \"industries\": [\"industries worked in e.g. fintech, ecommerce, saas\"],\\n` +\n  `  \"searchKeywords\": [\"5 seniority-matched job titles to search — e.g. Senior React Developer not just Developer\"],\\n` +\n  `  \"seniorityKeywords\": [\"seniority level words e.g. Senior, Lead, Staff\"],\\n` +\n  `  \"avoidKeywords\": [\"junior, fresher, intern, trainee, entry-level — only if yearsExperience > 3\"],\\n` +\n  `  \"summary\": \"one sentence: role, years of exp, top 2-3 skills\"\\n` +\n  `}\\n\\n` +\n  `RULES: skills must be real tools from the resume. searchKeywords must match seniority level.`;\n\nreturn [{ json: { prompt, locations, roles, salaryMin, salaryMax } }];"
+      },
+      "id": "node-code-build-prompt",
+      "name": "Build OpenAI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1060, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $vars.OPENAI_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'You are a resume analyzer. Return ONLY valid JSON.' }, { role: 'user', content: $json.prompt } ] }) }}",
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      },
+      "id": "node-http-openai",
+      "name": "OpenAI: Analyze Resume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 300],
+      "notes": "Set OPENAI_KEY in N8N Settings → Variables."
+    },
+    {
+      "parameters": {
+        "jsCode": "const openaiResponse = $input.first().json;\nconst prefs = $('Build OpenAI Prompt').first().json;\n\nlet profile;\ntry {\n  const content = openaiResponse.choices[0].message.content;\n  profile = typeof content === 'string' ? JSON.parse(content) : content;\n} catch(e) {\n  throw new Error('Failed to parse OpenAI response: ' + e.message);\n}\n\nprofile.avoidKeywords     = profile.avoidKeywords     || [];\nprofile.seniorityKeywords = profile.seniorityKeywords || [];\nprofile.industries        = profile.industries        || [];\nprofile.locations         = prefs.locations;\nprofile.roles             = prefs.roles;\nprofile.salaryMin         = prefs.salaryMin;\nprofile.salaryMax         = prefs.salaryMax;\n\nreturn [{ json: profile }];"
+      },
+      "id": "node-code-parse-profile",
+      "name": "Parse Profile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Content-Type",                "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-analyze",
+      "name": "Respond with Profile",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 300]
+    }
+  ],
+  "connections": {
+    "Webhook":                { "main": [[{ "node": "Extract Binary",       "type": "main", "index": 0 }]] },
+    "Extract Binary":         { "main": [[{ "node": "Parse PDF Text",       "type": "main", "index": 0 }]] },
+    "Parse PDF Text":         { "main": [[{ "node": "Merge Resume + Prefs", "type": "main", "index": 0 }]] },
+    "Merge Resume + Prefs":   { "main": [[{ "node": "Build OpenAI Prompt",  "type": "main", "index": 0 }]] },
+    "Build OpenAI Prompt":    { "main": [[{ "node": "OpenAI: Analyze Resume","type": "main", "index": 0 }]] },
+    "OpenAI: Analyze Resume": { "main": [[{ "node": "Parse Profile",        "type": "main", "index": 0 }]] },
+    "Parse Profile":          { "main": [[{ "node": "Respond with Profile", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "job-finder" }]
+}

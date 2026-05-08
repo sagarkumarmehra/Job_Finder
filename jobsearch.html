@@ -463,7 +463,147 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .lo-bar-wrap { width: 380px; height: 2px; background: var(--border); border-radius: 2px; margin-top: 28px; overflow: hidden; }
 .lo-bar { height: 100%; background: var(--text); width: 0; border-radius: 2px; transition: width 0.7s ease; }
 
-/* ─── PAGE 2: RESULTS ────────────────────────────────── */
+/* ─── PAGE 2: PROFILE REVIEW ─────────────────────────── */
+#page-profile { background: var(--bg2); }
+
+.pf-body {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  width: 100%;
+}
+.pf-heading {
+  font-family: var(--font-s);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+.pf-heading em { font-style: italic; }
+.pf-subhead {
+  font-size: 14px;
+  color: var(--text-2);
+  margin-bottom: 32px;
+}
+.pf-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.pf-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 16px;
+}
+.pf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.pf-field label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 5px;
+}
+.pf-field .val {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+}
+.pf-badge {
+  display: inline-block;
+  background: var(--blue-lt);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-transform: capitalize;
+}
+.pf-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+.pf-skill {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.pf-kw-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.pf-kw-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.pf-kw-dot {
+  width: 6px; height: 6px;
+  background: var(--blue);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pf-summary {
+  font-size: 13px;
+  color: var(--text-2);
+  font-style: italic;
+  line-height: 1.6;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+}
+.pf-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.btn-search-jobs {
+  background: var(--text);
+  color: #fff;
+  font-family: var(--font-b);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 14px 40px;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  letter-spacing: -0.01em;
+}
+.btn-search-jobs:hover {
+  background: #333;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  transform: translateY(-1px);
+}
+
+/* ─── PAGE 3: RESULTS ────────────────────────────────── */
 #page-results { background: var(--bg2); }
 
 .back-btn {
@@ -817,7 +957,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
   <!-- Submit -->
   <div class="submit-area">
-    <button class="btn-find" id="findBtn" disabled onclick="beginSearch()">Find Matching Jobs</button>
+    <button class="btn-find" id="findBtn" disabled onclick="beginAnalysis()">Analyse Resume & Find Jobs</button>
     <p class="submit-hint">Your resume is only used to find matches and is not stored.</p>
   </div>
 
@@ -828,21 +968,73 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
      LOADING OVERLAY
 ══════════════════════════════════════════════════ -->
 <div id="loading-overlay">
-  <div class="lo-h">Searching for your matches…</div>
-  <div class="lo-sub">Scanning live listings across 3 platforms</div>
-  <div class="lo-steps">
-    <div class="lo-step"><div class="lo-icon">🔍</div><span class="lo-text">Parsing your resume</span><span class="lo-done" id="ld0"></span></div>
-    <div class="lo-step"><div class="lo-icon">💼</div><span class="lo-text">Searching LinkedIn</span><span class="lo-done" id="ld1"></span></div>
-    <div class="lo-step"><div class="lo-icon">🏢</div><span class="lo-text">Searching Glassdoor</span><span class="lo-done" id="ld2"></span></div>
-    <div class="lo-step"><div class="lo-icon">🔎</div><span class="lo-text">Searching Naukri</span><span class="lo-done" id="ld3"></span></div>
-    <div class="lo-step"><div class="lo-icon">✦</div><span class="lo-text">Ranking results for you</span><span class="lo-done" id="ld4"></span></div>
+  <div class="lo-h" id="loHeading">Reading your resume…</div>
+  <div class="lo-sub" id="loSub">Sending to N8N for analysis</div>
+  <div class="lo-steps" id="loSteps">
+    <!-- steps injected by JS -->
   </div>
   <div class="lo-bar-wrap"><div class="lo-bar" id="loBar"></div></div>
 </div>
 
 
 <!-- ══════════════════════════════════════════════════
-     PAGE 2 — RESULTS
+     PAGE 2 — PROFILE REVIEW
+══════════════════════════════════════════════════ -->
+<div id="page-profile" class="page">
+
+  <nav>
+    <a href="#" class="logo"><span class="logo-mark">L</span> Launchpad</a>
+    <button class="back-btn" onclick="goBackToUpload()">← Edit resume</button>
+  </nav>
+
+  <div class="pf-body">
+    <h2 class="pf-heading">Here's what we found<br><em>in your resume</em></h2>
+    <p class="pf-subhead">Review your profile before we search for matching jobs. If anything looks wrong, go back and re-upload.</p>
+
+    <div class="pf-card">
+      <div class="pf-card-title">Your Profile</div>
+      <div class="pf-grid">
+        <div class="pf-field">
+          <label>Current Title</label>
+          <div class="val" id="pfTitle">—</div>
+        </div>
+        <div class="pf-field">
+          <label>Experience</label>
+          <div class="val" id="pfExp">—</div>
+        </div>
+        <div class="pf-field">
+          <label>Domain</label>
+          <div class="val" id="pfDomain">—</div>
+        </div>
+        <div class="pf-field">
+          <label>Seniority Level</label>
+          <span class="pf-badge" id="pfSeniority">—</span>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;">Skills Detected in Resume</div>
+        <div class="pf-skills" id="pfSkills"></div>
+      </div>
+      <div id="pfSummary" class="pf-summary" style="display:none;"></div>
+    </div>
+
+    <div class="pf-card">
+      <div class="pf-card-title">Will Search For</div>
+      <p style="font-size:12px;color:var(--text-2);margin-bottom:14px;">These are the exact job titles we'll search on LinkedIn, Glassdoor and Naukri.</p>
+      <div class="pf-kw-list" id="pfKeywords"></div>
+    </div>
+
+    <div class="pf-actions">
+      <button class="back-btn" onclick="goBackToUpload()">← Edit preferences</button>
+      <button class="btn-search-jobs" onclick="beginJobSearch()">Search for Jobs →</button>
+    </div>
+  </div>
+
+</div><!-- /page-profile -->
+
+
+<!-- ══════════════════════════════════════════════════
+     PAGE 3 — RESULTS
 ══════════════════════════════════════════════════ -->
 <div id="page-results" class="page">
 
@@ -1019,7 +1211,9 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
    Firebase URLs are safe to expose publicly.
    Format: https://REGION-PROJECT_ID.cloudfunctions.net/processSearch
 ──────────────────────────────────────────────────────────────────── */
-const FIREBASE_URL = 'https://processsearch-o7g2huviqa-uc.a.run.app';
+/* ── N8N WEBHOOK URLS — paste yours after importing the workflows ── */
+const N8N_ANALYZE_URL = '';  // e.g. https://sagar2kumar2h.app.n8n.cloud/webhook/analyze-resume
+const N8N_SEARCH_URL  = '';  // e.g. https://sagar2kumar2h.app.n8n.cloud/webhook/search-jobs
 
 /* ── GATE (declared first — used by everything below) ── */
 const findBtn = document.getElementById('findBtn');
@@ -1145,77 +1339,142 @@ fileRm.addEventListener('click', e => { e.stopPropagation(); clearFile(); });
   })
 );
 
-/* ── SEARCH FLOW ─────────────────────────────────────── */
-async function beginSearch() {
-  const overlay = document.getElementById('loading-overlay');
-  overlay.classList.add('show');
+/* ── LOADING HELPERS ─────────────────────────────────── */
+let _currentProfile = null;
 
-  // Fire API call and animation in parallel
-  const apiPromise = callWebhook();
-  let apiJobs = null;
-
-  // Animation resolves after ~7s; API call may be faster or slower
-  await runLoadingAnimation();
-  overlay.classList.remove('show');
-
-  let apiProfile = null;
-  let apiError   = null;
-  try {
-    const data = await apiPromise;
-    console.log('=== FIREBASE RESPONSE ===', JSON.stringify(data, null, 2));
-    apiJobs    = data.jobs    || (Array.isArray(data) ? data : null);
-    apiProfile = data.profile || null;
-    if (data.error) apiError = data.error;
-  } catch (e) {
-    apiError = e.message;
-    console.error('Firebase call failed:', e.message);
-  }
-  window._lastApiError = apiError; // expose for debug card
-
-  showResults(apiJobs || JOBS, apiProfile);
+function showOverlay(heading, sub, stepDefs) {
+  document.getElementById('loHeading').textContent = heading;
+  document.getElementById('loSub').textContent     = sub;
+  const container = document.getElementById('loSteps');
+  container.innerHTML = stepDefs.map((s, i) =>
+    `<div class="lo-step" id="lo-step-${i}">
+      <div class="lo-icon" id="lo-icon-${i}">${s.icon}</div>
+      <span class="lo-text">${s.text}</span>
+      <span class="lo-done"></span>
+    </div>`
+  ).join('');
+  document.getElementById('loBar').style.width = '0';
+  document.getElementById('loading-overlay').classList.add('show');
 }
 
-async function callWebhook() {
-  if (!FIREBASE_URL) {
-    // No endpoint configured — simulate delay and return demo data
-    await new Promise(r => setTimeout(r, 4000));
-    return { jobs: JOBS };
-  }
-
-  const fd = new FormData();
-  fd.append('resume', file, file.name);
-  fd.append('locations', JSON.stringify(locs));
-  fd.append('roles', JSON.stringify([...roles]));
-  fd.append('salaryMin', String(rLo.value));
-  fd.append('salaryMax', String(rHi.value));
-
-  const resp = await fetch(FIREBASE_URL, { method: 'POST', body: fd });
-  if (!resp.ok) throw new Error(`Server responded with HTTP ${resp.status}`);
-  return resp.json();
+function hideOverlay() {
+  document.getElementById('loading-overlay').classList.remove('show');
 }
 
-function runLoadingAnimation() {
+function runSteps(stepDefs, timings) {
   return new Promise(resolve => {
-    const steps = [...document.querySelectorAll('.lo-step')];
-    const bar   = document.getElementById('loBar');
-    const times = [1200, 1500, 1500, 1400, 900]; // ~6.5s total
+    const bar = document.getElementById('loBar');
     function run(i) {
-      if (i >= steps.length) {
-        bar.style.width = '100%';
-        setTimeout(resolve, 400);
-        return;
-      }
-      steps[i].classList.add('active');
-      bar.style.width = Math.round(((i + 0.5) / steps.length) * 100) + '%';
+      if (i >= stepDefs.length) { bar.style.width = '100%'; setTimeout(resolve, 300); return; }
+      const stepEl = document.getElementById(`lo-step-${i}`);
+      const iconEl = document.getElementById(`lo-icon-${i}`);
+      stepEl.classList.add('active');
+      bar.style.width = Math.round(((i + 0.5) / stepDefs.length) * 100) + '%';
       setTimeout(() => {
-        steps[i].classList.remove('active');
-        steps[i].classList.add('done');
-        steps[i].querySelector('.lo-icon').textContent = '✓';
+        stepEl.classList.remove('active');
+        stepEl.classList.add('done');
+        iconEl.textContent = '✓';
         run(i + 1);
-      }, times[i]);
+      }, timings[i]);
     }
     run(0);
   });
+}
+
+/* ── STEP 1: ANALYSE RESUME → show Profile page ──────── */
+async function beginAnalysis() {
+  const analyseSteps = [
+    { icon: '📄', text: 'Reading your resume' },
+    { icon: '🤖', text: 'AI extracting skills & experience' },
+    { icon: '🎯', text: 'Building your search profile' },
+  ];
+  showOverlay('Analysing your resume…', 'Sending to N8N — watch the workflow run live', analyseSteps);
+
+  const animPromise = runSteps(analyseSteps, [1200, 2000, 1000]);
+  let profile = null, error = null;
+
+  try {
+    if (!N8N_ANALYZE_URL) {
+      // Demo mode — simulate with fake profile
+      await new Promise(r => setTimeout(r, 3500));
+      profile = {
+        currentTitle: 'Senior Software Engineer', yearsExperience: 5, seniority: 'senior',
+        domain: 'backend engineering', skills: ['Node.js','Python','PostgreSQL','AWS','Docker','Redis'],
+        searchKeywords: ['Senior Backend Engineer','Senior Software Engineer','Lead Backend Developer','Senior Node.js Developer','Backend Tech Lead'],
+        summary: 'Senior backend engineer with 5 years building scalable APIs.',
+        locations: locs, roles: [...roles], salaryMin: +rLo.value, salaryMax: +rHi.value
+      };
+    } else {
+      const fd = new FormData();
+      fd.append('resume',    file, file.name);
+      fd.append('locations', JSON.stringify(locs));
+      fd.append('roles',     JSON.stringify([...roles]));
+      fd.append('salaryMin', String(rLo.value));
+      fd.append('salaryMax', String(rHi.value));
+      const resp = await fetch(N8N_ANALYZE_URL, { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error(`N8N returned HTTP ${resp.status}`);
+      const data = await resp.json();
+      console.log('N8N ANALYZE RESPONSE:', data);
+      profile = data;
+    }
+  } catch (e) {
+    error = e.message;
+    console.error('Analyse failed:', e.message);
+  }
+
+  await animPromise;
+  hideOverlay();
+
+  if (error || !profile) {
+    alert(`Resume analysis failed: ${error || 'No profile returned'}\n\nCheck your N8N_ANALYZE_URL is set and the workflow is active.`);
+    return;
+  }
+
+  _currentProfile = profile;
+  showProfilePage(profile);
+}
+
+/* ── STEP 2: SEARCH JOBS → show Results page ─────────── */
+async function beginJobSearch() {
+  const searchSteps = [
+    { icon: '💼', text: 'Searching LinkedIn & Google Jobs' },
+    { icon: '🔎', text: 'Searching Naukri' },
+    { icon: '✦',  text: 'Ranking matches for your profile' },
+  ];
+  showOverlay('Searching across platforms…', 'N8N is running SerpAPI + Naukri in parallel', searchSteps);
+
+  const animPromise = runSteps(searchSteps, [2000, 2000, 1200]);
+  let jobs = null, error = null;
+
+  try {
+    if (!N8N_SEARCH_URL) {
+      await new Promise(r => setTimeout(r, 4500));
+      jobs = JOBS;
+    } else {
+      const resp = await fetch(N8N_SEARCH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(_currentProfile)
+      });
+      if (!resp.ok) throw new Error(`N8N returned HTTP ${resp.status}`);
+      const data = await resp.json();
+      console.log('N8N SEARCH RESPONSE:', data);
+      jobs = data.jobs || (Array.isArray(data) ? data : null);
+    }
+  } catch (e) {
+    error = e.message;
+    console.error('Job search failed:', e.message);
+  }
+
+  await animPromise;
+  hideOverlay();
+
+  if (error) {
+    alert(`Job search failed: ${error}\n\nCheck your N8N_SEARCH_URL is set and the workflow is active.`);
+    return;
+  }
+
+  showResults(jobs || JOBS);
 }
 
 /* ── DEMO JOB DATA ───────────────────────────────────── */
@@ -1311,70 +1570,86 @@ function addManual() {
 }
 document.getElementById('manualUrl')?.addEventListener('keydown', e => { if (e.key === 'Enter') addManual(); });
 
-function showResults(jobs, profile) {
-  jobs = jobs || JOBS;
-  document.getElementById('page-upload').classList.remove('active');
-  const p2 = document.getElementById('page-results');
-  p2.classList.add('active');
+/* ── PAGE NAVIGATION ─────────────────────────────────── */
+function showPage(id) {
+  ['page-upload','page-profile','page-results'].forEach(p =>
+    document.getElementById(p).classList.toggle('active', p === id)
+  );
+  window.scrollTo(0, 0);
+}
 
+function goBackToUpload() {
+  showPage('page-upload');
+}
+
+function goBack() {
+  selected.clear(); syncBar();
+  showPage('page-profile');
+}
+
+/* ── PROFILE REVIEW PAGE ─────────────────────────────── */
+function showProfilePage(profile) {
+  document.getElementById('pfTitle').textContent    = profile.currentTitle || '—';
+  document.getElementById('pfExp').textContent      = profile.yearsExperience
+    ? profile.yearsExperience + (profile.yearsExperience === 1 ? ' year' : ' years') + ' experience'
+    : '—';
+  document.getElementById('pfDomain').textContent   = profile.domain || '—';
+  document.getElementById('pfSeniority').textContent = profile.seniority || '—';
+
+  const skillsEl = document.getElementById('pfSkills');
+  skillsEl.innerHTML = '';
+  (profile.skills || []).forEach(s => {
+    const el = document.createElement('span');
+    el.className = 'pf-skill';
+    el.textContent = s;
+    skillsEl.appendChild(el);
+  });
+
+  const kwEl = document.getElementById('pfKeywords');
+  kwEl.innerHTML = '';
+  (profile.searchKeywords || []).forEach(kw => {
+    kwEl.innerHTML += `<div class="pf-kw-item"><span class="pf-kw-dot"></span>${kw}</div>`;
+  });
+
+  if (profile.summary) {
+    const sumEl = document.getElementById('pfSummary');
+    sumEl.textContent = '"' + profile.summary + '"';
+    sumEl.style.display = 'block';
+  }
+
+  showPage('page-profile');
+}
+
+/* ── RESULTS PAGE ────────────────────────────────────── */
+function showResults(jobs) {
+  jobs = jobs || JOBS;
   const list = document.getElementById('jobList');
   list.innerHTML = '';
   jobs.forEach((job, i) => {
     const row = makeRow(job);
     row.style.opacity = '0'; row.style.transform = 'translateY(16px)';
     list.appendChild(row);
-    setTimeout(() => { row.style.transition = 'opacity 0.4s ease, transform 0.4s ease'; row.style.opacity = '1'; row.style.transform = 'none'; }, i * 55);
+    setTimeout(() => {
+      row.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+      row.style.opacity = '1'; row.style.transform = 'none';
+    }, i * 55);
   });
 
-  document.getElementById('rCount').textContent = jobs.length + ' jobs found';
+  document.getElementById('rCount').textContent    = jobs.length + ' jobs found';
   document.getElementById('rPrefLine').textContent = [...roles].join(', ') + ' · ' + locs.join(', ');
 
+  // Remove old profile card — profile is now shown on page 2
   const card = document.getElementById('profileCard');
-  if (profile) {
-    document.getElementById('pcSeniority').textContent = profile.seniority || 'mid';
-    document.getElementById('pcTitle').textContent     = profile.currentTitle || '—';
-    document.getElementById('pcExp').textContent       = profile.yearsExperience
-      ? profile.yearsExperience + ' yrs experience'
-      : '—';
-    document.getElementById('pcDomain').textContent   = profile.domain || '—';
+  if (card) card.style.display = 'none';
 
-    // Show each search keyword on its own line with a bullet
-    document.getElementById('pcKeywords').innerHTML   =
-      (profile.searchKeywords || []).map(k => `• ${k}`).join('<br>') || '—';
-
-    const skillsEl = document.getElementById('pcSkills');
-    skillsEl.innerHTML = '';
-    (profile.skills || []).forEach(s => {
-      const tag = document.createElement('span');
-      tag.textContent = s;
-      tag.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--text-2);';
-      skillsEl.appendChild(tag);
-    });
-
-    if (profile.summary) {
-      const sw = document.getElementById('pcSummaryWrap');
-      sw.textContent = '"' + profile.summary + '"';
-      sw.style.display = 'block';
-    }
-
-    card.style.display = 'block';
-  } else {
-    const errMsg = window._lastApiError ? `<br><br><strong>Error:</strong> <code style="background:#FFF3CD;padding:2px 6px;border-radius:4px;">${window._lastApiError}</code>` : '';
-    card.innerHTML = '<div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:12px;padding:14px 20px;font-size:13px;color:#7A6000;">' +
-      '⚠️ <strong>Demo results shown — Firebase API call failed.</strong>' + errMsg + '</div>';
-    card.style.display = 'block';
-  }
-}
-
-function goBack() {
-  selected.clear(); syncBar();
-  document.getElementById('page-results').classList.remove('active');
-  document.getElementById('page-upload').classList.add('active');
+  showPage('page-results');
 }
 
 function applyNow() {
   if (!selected.size) return;
-  const list = [...document.querySelectorAll('.job-row.checked')].map(r => '• ' + r.querySelector('.jtitle').textContent + ' — ' + r.querySelector('.jco').textContent).join('\n');
+  const list = [...document.querySelectorAll('.job-row.checked')]
+    .map(r => '• ' + r.querySelector('.jtitle').textContent + ' — ' + r.querySelector('.jco').textContent)
+    .join('\n');
   alert(`Proceeding with ${selected.size} job${selected.size > 1 ? 's' : ''}:\n\n${list}\n\nResume tailoring coming in v1.1!`);
 }
 </script>
