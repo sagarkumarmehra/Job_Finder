@@ -42,7 +42,7 @@ async function extractTextFromBuffer(buffer, mimeType) {
   throw new Error(`Unsupported file type: ${mimeType}. Please upload a PDF or DOCX file.`);
 }
 
-const OPENAI_KEY = process.env.OPENAI_KEY || '';
+const OPENAI_KEY = process.env.OPENAI_KEY || 'PASTE_YOUR_OPENAI_KEY_HERE';
 const SERPAPI_KEY = '9ee0a0db5e8213e18682134924eb7c7711699c7e06f5ae485d154ffd011fd199';
 const SECRETS  = [];
 const RUN_OPTS = { timeoutSeconds: 120, memory: '512MiB', cors: true };
